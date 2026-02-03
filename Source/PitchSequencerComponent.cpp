@@ -24,33 +24,33 @@ PitchSequencerComponent::~PitchSequencerComponent()
 void PitchSequencerComponent::paint(juce::Graphics& g)
 {
     auto& pitchSequencer = patternModel.getPitchSequencer();
+    auto bounds = getLocalBounds().toFloat();
     
-    // Only draw if visible
-    if (!pitchSequencer.visible || !isVisible())
+    // Always draw the waveform (pitch modulation is always active)
+    // But only show the full editing overlay when in pitch editing mode
+    
+    if (pitchSequencer.editingPitch)
     {
-        return;
+        // Full editing mode: show semi-transparent background and reference lines
+        g.fillAll(juce::Colour(0x40000000));
+        
+        // Draw center line (0 semitones)
+        float centerY = bounds.getCentreY();
+        g.setColour(juce::Colours::white.withAlpha(0.3f));
+        g.drawLine(bounds.getX(), centerY, bounds.getRight(), centerY, 1.0f);
+        
+        // Draw +/- 12 semitone reference lines
+        float octaveUpY = pitchOffsetToPixelY(12.0f);
+        float octaveDownY = pitchOffsetToPixelY(-12.0f);
+        g.setColour(juce::Colours::white.withAlpha(0.2f));
+        g.drawLine(bounds.getX(), octaveUpY, bounds.getRight(), octaveUpY, 1.0f);
+        g.drawLine(bounds.getX(), octaveDownY, bounds.getRight(), octaveDownY, 1.0f);
     }
     
-    // Draw semi-transparent background
-    g.fillAll(juce::Colour(0x40000000));
-    
-    // Draw center line (0 semitones)
-    auto bounds = getLocalBounds().toFloat();
-    float centerY = bounds.getCentreY();
-    g.setColour(juce::Colours::white.withAlpha(0.3f));
-    g.drawLine(bounds.getX(), centerY, bounds.getRight(), centerY, 1.0f);
-    
-    // Draw +/- 12 semitone reference lines
-    float octaveUpY = pitchOffsetToPixelY(12.0f);
-    float octaveDownY = pitchOffsetToPixelY(-12.0f);
-    g.setColour(juce::Colours::white.withAlpha(0.2f));
-    g.drawLine(bounds.getX(), octaveUpY, bounds.getRight(), octaveUpY, 1.0f);
-    g.drawLine(bounds.getX(), octaveDownY, bounds.getRight(), octaveDownY, 1.0f);
-    
-    // Draw the waveform
+    // Always draw the waveform (visible in both modes)
     drawWaveform(g);
     
-    // Draw playback position indicator
+    // Always draw playback position indicator for pitch sequencer
     auto& colorConfig = patternModel.getColorConfig(selectedColorChannel);
     float pixelX = bounds.getX() + playbackPosition * bounds.getWidth();
     g.setColour(colorConfig.displayColor.withAlpha(0.9f));
@@ -66,10 +66,12 @@ void PitchSequencerComponent::resized()
 void PitchSequencerComponent::updateVisibility()
 {
     auto& pitchSequencer = patternModel.getPitchSequencer();
-    setVisible(pitchSequencer.visible);
     
-    // Only intercept mouse clicks when visible
-    setInterceptsMouseClicks(pitchSequencer.visible, false);
+    // Component is always visible (waveform always shows)
+    setVisible(true);
+    
+    // Only intercept mouse clicks when in pitch editing mode
+    setInterceptsMouseClicks(pitchSequencer.editingPitch, false);
 }
 
 void PitchSequencerComponent::setWaveformResolution(int numSamples)
@@ -180,8 +182,8 @@ void PitchSequencerComponent::mouseDown(const juce::MouseEvent& event)
 {
     auto& pitchSequencer = patternModel.getPitchSequencer();
     
-    // Only handle mouse events if visible
-    if (!pitchSequencer.visible)
+    // Only handle mouse events if in pitch editing mode
+    if (!pitchSequencer.editingPitch)
     {
         return;
     }

@@ -18,18 +18,29 @@ struct TimeSignature {
     }
 };
 
+// Pitch sequencer editing mode (doesn't affect pitch modulation)
 struct PitchSequencer {
-    std::vector<float> waveform;
-    int loopLengthBars;
-    bool visible;
+    bool editingPitch;  // True when editing pitch sequence, false when editing squares
     
     PitchSequencer()
-        : loopLengthBars(2)
-        , visible(false)
+        : editingPitch(false)
+    {}
+};
+
+// Per-color pitch waveform configuration
+struct ColorChannelConfig {
+    int midiChannel;
+    int highNote;
+    int lowNote;
+    std::vector<float> pitchWaveform;
+    int pitchSeqLoopLengthBars;
+    
+    ColorChannelConfig()
+        : midiChannel(1), highNote(84), lowNote(48), pitchSeqLoopLengthBars(2)
     {}
     
     float getPitchOffsetAt(double normalizedPosition) const {
-        if (waveform.empty() || !visible) {
+        if (pitchWaveform.empty()) {
             return 0.0f;
         }
         
@@ -37,24 +48,14 @@ struct PitchSequencer {
         normalizedPosition = normalizedPosition - std::floor(normalizedPosition);
         
         // Map to waveform index
-        double indexFloat = normalizedPosition * (waveform.size() - 1);
+        double indexFloat = normalizedPosition * (pitchWaveform.size() - 1);
         int index0 = static_cast<int>(std::floor(indexFloat));
-        int index1 = std::min(index0 + 1, static_cast<int>(waveform.size() - 1));
+        int index1 = std::min(index0 + 1, static_cast<int>(pitchWaveform.size() - 1));
         
         // Linear interpolation
         float t = static_cast<float>(indexFloat - index0);
-        return waveform[index0] * (1.0f - t) + waveform[index1] * t;
+        return pitchWaveform[index0] * (1.0f - t) + pitchWaveform[index1] * t;
     }
-};
-
-struct ColorChannelConfig {
-    int midiChannel;
-    int highNote;
-    int lowNote;
-    
-    ColorChannelConfig()
-        : midiChannel(1), highNote(84), lowNote(48)
-    {}
 };
 
 struct Square {
@@ -112,58 +113,57 @@ void testPitchOffsetAppliedToNote()
     std::cout << "✓ Pitch offset applied to MIDI note test passed\n";
 }
 
-void testHiddenSequencerZeroOffset()
+void testPitchAlwaysApplies()
 {
-    std::cout << "Testing hidden sequencer returns zero offset...\n";
+    std::cout << "Testing pitch modulation always applies (regardless of editing mode)...\n";
     
-    PitchSequencer pitchSeq;
-    pitchSeq.waveform = {0.0f, 12.0f};
-    pitchSeq.visible = false;  // Hidden
-    
-    Square square(0.0f, 0.5f, 0.25f, 0.5f, 0);
     ColorChannelConfig config;
     config.highNote = 60;
     config.lowNote = 48;
+    config.pitchWaveform = {0.0f, 12.0f};
     
-    // Get pitch offset (should be 0 because sequencer is hidden)
-    float pitchOffset = pitchSeq.getPitchOffsetAt(0.5);
-    assert(pitchOffset == 0.0f);
+    PitchSequencer pitchSeq;
+    pitchSeq.editingPitch = false;  // Not in editing mode - but pitch still applies!
     
-    // Calculate note with zero offset
-    int note = calculateMidiNote(square, config, pitchOffset);
-    int noteWithoutSequencer = calculateMidiNote(square, config, 0.0f);
-    assert(note == noteWithoutSequencer);
+    Square square(0.0f, 0.5f, 0.25f, 0.5f, 0);
     
-    std::cout << "✓ Hidden sequencer zero offset test passed\n";
+    // Get pitch offset (should NOT be 0 - pitch always applies)
+    float pitchOffset = config.getPitchOffsetAt(0.5);
+    assert(approxEqual(pitchOffset, 6.0f));  // Halfway between 0 and 12
+    
+    // Calculate note with offset
+    int noteWithOffset = calculateMidiNote(square, config, pitchOffset);
+    int noteWithoutOffset = calculateMidiNote(square, config, 0.0f);
+    assert(noteWithOffset == noteWithoutOffset + 6);
+    
+    std::cout << "✓ Pitch always applies test passed\n";
 }
 
-void testVisibleSequencerAppliesOffset()
+void testPitchWaveformAppliesOffset()
 {
-    std::cout << "Testing visible sequencer applies offset...\n";
+    std::cout << "Testing pitch waveform applies offset...\n";
     
-    PitchSequencer pitchSeq;
-    pitchSeq.waveform = {0.0f, 12.0f};  // 0 at start, 12 at end
-    pitchSeq.visible = true;
-    
-    Square square(0.0f, 0.5f, 0.25f, 0.5f, 0);
     ColorChannelConfig config;
     config.highNote = 60;
     config.lowNote = 48;
+    config.pitchWaveform = {0.0f, 12.0f};  // 0 at start, 12 at end
+    
+    Square square(0.0f, 0.5f, 0.25f, 0.5f, 0);
     
     // At position 0.0, offset should be 0
-    float offset1 = pitchSeq.getPitchOffsetAt(0.0);
+    float offset1 = config.getPitchOffsetAt(0.0);
     assert(approxEqual(offset1, 0.0f));
     int note1 = calculateMidiNote(square, config, offset1);
     
     // At position 0.5, offset should be 6 (halfway between 0 and 12)
-    float offset2 = pitchSeq.getPitchOffsetAt(0.5);
+    float offset2 = config.getPitchOffsetAt(0.5);
     assert(approxEqual(offset2, 6.0f));
     int note2 = calculateMidiNote(square, config, offset2);
     
     // Note should be 6 semitones higher
     assert(note2 == note1 + 6);
     
-    std::cout << "✓ Visible sequencer applies offset test passed\n";
+    std::cout << "✓ Pitch waveform applies offset test passed\n";
 }
 
 void testIndependentLoopLengthConversion()
@@ -174,25 +174,25 @@ void testIndependentLoopLengthConversion()
     int mainLoopBars = 2;
     TimeSignature timeSig(4, 4);
     double mainLoopBeats = mainLoopBars * timeSig.getBeatsPerBar();  // 8 beats
+    (void)mainLoopBeats;  // Unused in this test
     
-    // Pitch sequencer: 4 bars = 16 beats
-    PitchSequencer pitchSeq;
-    pitchSeq.loopLengthBars = 4;
-    pitchSeq.visible = true;
-    pitchSeq.waveform = {0.0f, 12.0f};
+    // Pitch sequencer: 4 bars = 16 beats (per-color now)
+    ColorChannelConfig config;
+    config.pitchSeqLoopLengthBars = 4;
+    config.pitchWaveform = {0.0f, 12.0f};
     
     // Simulate playback at beat 4 (halfway through main loop)
     double currentPositionBeats = 4.0;
     
     // Convert to pitch sequencer's normalized position
-    double pitchSeqLoopBeats = pitchSeq.loopLengthBars * timeSig.getBeatsPerBar();  // 16 beats
+    double pitchSeqLoopBeats = config.pitchSeqLoopLengthBars * timeSig.getBeatsPerBar();  // 16 beats
     double normalizedPitchSeqPos = std::fmod(currentPositionBeats, pitchSeqLoopBeats) / pitchSeqLoopBeats;
     
     // At beat 4 in a 16-beat pitch sequencer loop, normalized position is 4/16 = 0.25
     assert(approxEqual(normalizedPitchSeqPos, 0.25f));
     
     // Pitch offset at 0.25 should be 3.0 (25% of the way from 0 to 12)
-    float pitchOffset = pitchSeq.getPitchOffsetAt(normalizedPitchSeqPos);
+    float pitchOffset = config.getPitchOffsetAt(normalizedPitchSeqPos);
     assert(approxEqual(pitchOffset, 3.0f));
     
     std::cout << "✓ Independent loop length conversion test passed\n";
@@ -226,8 +226,8 @@ int main()
     try
     {
         testPitchOffsetAppliedToNote();
-        testHiddenSequencerZeroOffset();
-        testVisibleSequencerAppliesOffset();
+        testPitchAlwaysApplies();
+        testPitchWaveformAppliesOffset();
         testIndependentLoopLengthConversion();
         testPitchOffsetClamping();
         

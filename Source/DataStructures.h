@@ -267,10 +267,10 @@ struct ColorChannelConfig {
  * The actual waveform data and loop length are stored per-color in ColorChannelConfig
  */
 struct PitchSequencer {
-    bool visible;                // Show/hide state
+    bool editingPitch;           // True when editing pitch sequence, false when editing squares
     
     PitchSequencer()
-        : visible(false)
+        : editingPitch(false)
     {}
 };
 

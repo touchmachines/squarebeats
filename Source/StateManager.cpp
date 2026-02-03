@@ -51,9 +51,9 @@ void StateManager::saveState(const PatternModel& model, juce::MemoryBlock& destD
         }
     }
     
-    // Write pitch sequencer global settings (visibility only now)
+    // Write pitch sequencer global settings (editing mode)
     const PitchSequencer& pitchSeq = model.getPitchSequencer();
-    stream.writeBool(pitchSeq.visible);
+    stream.writeBool(pitchSeq.editingPitch);
     
     // Write scale configuration (Version 4+)
     const ScaleConfig& scaleConfig = model.getScaleConfig();
@@ -262,13 +262,13 @@ bool StateManager::loadState(PatternModel& model, const void* data, int sizeInBy
             model.setColorConfig(i, config);
         }
         
-        // Read pitch sequencer global settings (visibility only)
+        // Read pitch sequencer global settings (editing mode)
         if (stream.getNumBytesRemaining() >= 1)
         {
-            bool pitchSeqVisible = stream.readBool();
+            bool pitchSeqEditing = stream.readBool();
             
             PitchSequencer& pitchSeq = model.getPitchSequencer();
-            pitchSeq.visible = pitchSeqVisible;
+            pitchSeq.editingPitch = pitchSeqEditing;
         }
         
         // Read scale configuration (Version 4+)

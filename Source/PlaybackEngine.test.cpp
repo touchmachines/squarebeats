@@ -223,11 +223,11 @@ void testPitchSequencerIntegration() {
     Square* square = model.createSquare(0.25f, 0.5f, 0.25f, 0.5f, 0);
     assertTrue(square != nullptr, "Square created");
     
-    // Set up pitch sequencer with a simple waveform
-    PitchSequencer& pitchSeq = model.getPitchSequencer();
-    pitchSeq.visible = true;
-    pitchSeq.loopLengthBars = 2;  // Same as main loop
-    pitchSeq.waveform = {0.0f, 12.0f};  // 0 semitones at start, 12 at end
+    // Set up pitch sequencer with a simple waveform (per-color now)
+    ColorChannelConfig config = model.getColorConfig(0);
+    config.pitchSeqLoopLengthBars = 2;  // Same as main loop
+    config.pitchWaveform = {0.0f, 12.0f};  // 0 semitones at start, 12 at end
+    model.setColorConfig(0, config);
     
     engine.setPatternModel(&model);
     
@@ -247,9 +247,9 @@ void testPitchSequencerIntegration() {
 }
 
 //==============================================================================
-// Test: Pitch sequencer hidden state
-void testPitchSequencerHiddenState() {
-    std::cout << "\n=== Test: Pitch Sequencer Hidden State ===" << std::endl;
+// Test: Pitch sequencer always applies (editing mode doesn't affect pitch modulation)
+void testPitchSequencerAlwaysApplies() {
+    std::cout << "\n=== Test: Pitch Sequencer Always Applies ===" << std::endl;
     
     PlaybackEngine engine;
     PatternModel model;
@@ -262,17 +262,21 @@ void testPitchSequencerHiddenState() {
     Square* square = model.createSquare(0.0f, 0.5f, 0.25f, 0.5f, 0);
     assertTrue(square != nullptr, "Square created");
     
-    // Set up pitch sequencer but keep it hidden
+    // Set up pitch waveform (pitch modulation always applies regardless of editing mode)
+    ColorChannelConfig config = model.getColorConfig(0);
+    config.pitchWaveform = {0.0f, 12.0f};
+    model.setColorConfig(0, config);
+    
+    // Editing mode is off (editing squares, not pitch)
     PitchSequencer& pitchSeq = model.getPitchSequencer();
-    pitchSeq.visible = false;  // Hidden
-    pitchSeq.waveform = {0.0f, 12.0f};
+    pitchSeq.editingPitch = false;
     
     engine.setPatternModel(&model);
     
     // Start playback
     engine.handleTransportChange(true, 44100.0, 120.0, 0.0, 0.0);
     
-    // Process blocks - pitch offset should be 0 since sequencer is hidden
+    // Process blocks - pitch offset should still be applied
     juce::AudioBuffer<float> buffer(2, 512);
     juce::MidiBuffer midiMessages;
     
@@ -281,7 +285,7 @@ void testPitchSequencerHiddenState() {
         engine.processBlock(buffer, midiMessages);
     }
     
-    std::cout << "Pitch sequencer hidden state working" << std::endl;
+    std::cout << "Pitch sequencer always applies working" << std::endl;
 }
 
 //==============================================================================
@@ -300,11 +304,11 @@ void testPitchSequencerIndependentLoop() {
     Square* square = model.createSquare(0.0f, 0.5f, 0.25f, 0.5f, 0);
     assertTrue(square != nullptr, "Square created");
     
-    // Set up pitch sequencer with different loop length (4 bars)
-    PitchSequencer& pitchSeq = model.getPitchSequencer();
-    pitchSeq.visible = true;
-    pitchSeq.loopLengthBars = 4;  // Different from main loop (2 bars)
-    pitchSeq.waveform = {0.0f, 6.0f};
+    // Set up pitch sequencer with different loop length (4 bars) - per-color now
+    ColorChannelConfig config = model.getColorConfig(0);
+    config.pitchSeqLoopLengthBars = 4;  // Different from main loop (2 bars)
+    config.pitchWaveform = {0.0f, 6.0f};
+    model.setColorConfig(0, config);
     
     engine.setPatternModel(&model);
     
@@ -336,7 +340,7 @@ int main() {
         testProcessBlockIntegration();
         testTransportStopSendsNoteOffs();
         testPitchSequencerIntegration();
-        testPitchSequencerHiddenState();
+        testPitchSequencerAlwaysApplies();
         testPitchSequencerIndependentLoop();
         
         std::cout << "\n=== All PlaybackEngine tests passed! ===" << std::endl;

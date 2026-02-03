@@ -214,20 +214,28 @@ void testPitchSequencer()
     
     auto& pitchSeq = model.getPitchSequencer();
     
-    // Default should be invisible with 2 bar loop
-    assert(!pitchSeq.visible);
-    assert(pitchSeq.loopLengthBars == 2);
-    assert(pitchSeq.waveform.empty());
+    // Default should not be in editing mode
+    assert(!pitchSeq.editingPitch);
     
-    // Modify pitch sequencer
-    pitchSeq.visible = true;
-    pitchSeq.loopLengthBars = 4;
-    pitchSeq.waveform = {0.0f, 1.0f, 2.0f, 1.0f, 0.0f};
+    // Modify pitch sequencer editing mode
+    pitchSeq.editingPitch = true;
     
     const auto& retrievedSeq = model.getPitchSequencer();
-    assert(retrievedSeq.visible);
-    assert(retrievedSeq.loopLengthBars == 4);
-    assert(retrievedSeq.waveform.size() == 5);
+    assert(retrievedSeq.editingPitch);
+    
+    // Test per-color pitch waveform (waveforms are per-color now)
+    auto& colorConfig = model.getColorConfig(0);
+    assert(colorConfig.pitchSeqLoopLengthBars == 2);  // Default
+    assert(colorConfig.pitchWaveform.empty() || colorConfig.pitchWaveform.size() == 256);  // Default or initialized
+    
+    // Modify per-color pitch settings
+    colorConfig.pitchSeqLoopLengthBars = 4;
+    colorConfig.pitchWaveform = {0.0f, 1.0f, 2.0f, 1.0f, 0.0f};
+    model.setColorConfig(0, colorConfig);
+    
+    const auto& retrievedConfig = model.getColorConfig(0);
+    assert(retrievedConfig.pitchSeqLoopLengthBars == 4);
+    assert(retrievedConfig.pitchWaveform.size() == 5);
     
     std::cout << "✓ Pitch sequencer test passed\n";
 }
@@ -235,47 +243,55 @@ void testPitchSequencer()
 void testPitchSequencerGetOffsetAt()
 {
     PatternModel model;
-    auto& pitchSeq = model.getPitchSequencer();
+    auto& colorConfig = model.getColorConfig(0);
     
     // Test 1: Empty waveform returns 0
-    pitchSeq.visible = true;
-    assert(pitchSeq.getPitchOffsetAt(0.5) == 0.0f);
+    colorConfig.pitchWaveform.clear();
+    model.setColorConfig(0, colorConfig);
+    assert(model.getColorConfig(0).getPitchOffsetAt(0.5) == 0.0f);
     
-    // Test 2: Hidden sequencer returns 0
-    pitchSeq.waveform = {1.0f, 2.0f, 3.0f};
-    pitchSeq.visible = false;
-    assert(pitchSeq.getPitchOffsetAt(0.5) == 0.0f);
+    // Test 2: Pitch always applies (regardless of editing mode)
+    colorConfig.pitchWaveform = {1.0f, 2.0f, 3.0f};
+    model.setColorConfig(0, colorConfig);
+    
+    auto& pitchSeq = model.getPitchSequencer();
+    pitchSeq.editingPitch = false;  // Not in editing mode
+    
+    // Pitch should still be applied
+    float offset = model.getColorConfig(0).getPitchOffsetAt(0.5);
+    assert(std::abs(offset - 2.0f) < 0.01f);
     
     // Test 3: Linear interpolation
-    pitchSeq.visible = true;
-    pitchSeq.waveform = {0.0f, 4.0f};  // Simple case: 0 at start, 4 at end
+    colorConfig.pitchWaveform = {0.0f, 4.0f};  // Simple case: 0 at start, 4 at end
+    model.setColorConfig(0, colorConfig);
     
     // At position 0.0, should be 0.0
-    float offset = pitchSeq.getPitchOffsetAt(0.0);
+    offset = model.getColorConfig(0).getPitchOffsetAt(0.0);
     assert(std::abs(offset - 0.0f) < 0.01f);
     
     // At position 0.5, should be 2.0 (halfway between 0 and 4)
-    offset = pitchSeq.getPitchOffsetAt(0.5);
+    offset = model.getColorConfig(0).getPitchOffsetAt(0.5);
     assert(std::abs(offset - 2.0f) < 0.01f);
     
-    // At position 1.0, should be 4.0
-    offset = pitchSeq.getPitchOffsetAt(1.0);
-    assert(std::abs(offset - 4.0f) < 0.01f);
+    // At position 1.0, wraps to 0.0
+    offset = model.getColorConfig(0).getPitchOffsetAt(1.0);
+    assert(std::abs(offset - 0.0f) < 0.01f);
     
     // Test 4: Multi-segment interpolation
-    pitchSeq.waveform = {0.0f, 2.0f, 1.0f};  // 3 points
+    colorConfig.pitchWaveform = {0.0f, 2.0f, 1.0f};  // 3 points
+    model.setColorConfig(0, colorConfig);
     
     // At position 0.25 (halfway between index 0 and 1)
-    offset = pitchSeq.getPitchOffsetAt(0.25);
+    offset = model.getColorConfig(0).getPitchOffsetAt(0.25);
     assert(std::abs(offset - 1.0f) < 0.01f);
     
     // At position 0.75 (halfway between index 1 and 2)
-    offset = pitchSeq.getPitchOffsetAt(0.75);
+    offset = model.getColorConfig(0).getPitchOffsetAt(0.75);
     assert(std::abs(offset - 1.5f) < 0.01f);
     
     // Test 5: Position wrapping (> 1.0)
-    offset = pitchSeq.getPitchOffsetAt(1.5);  // Should wrap to 0.5
-    float expectedOffset = pitchSeq.getPitchOffsetAt(0.5);
+    offset = model.getColorConfig(0).getPitchOffsetAt(1.5);  // Should wrap to 0.5
+    float expectedOffset = model.getColorConfig(0).getPitchOffsetAt(0.5);
     assert(std::abs(offset - expectedOffset) < 0.01f);
     
     std::cout << "✓ Pitch sequencer getPitchOffsetAt test passed\n";

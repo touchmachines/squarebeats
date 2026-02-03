@@ -227,7 +227,7 @@ cp -r "build/SquareBeats_artefacts/Release/VST3/SquareBeats.vst3" "~/Library/Aud
 4. **Draw Squares**: Click and drag on the sequencing plane to create notes
 5. **Delete Squares**: Double-click any square to remove it
 6. **Configure Colors**: Select different colors for different MIDI channels
-7. **Pitch Sequencer**: Click "Show Pitch Sequencer" and draw pitch modulation curves per color
+7. **Pitch Sequencer**: Click "Edit Pitch Sequence" to switch to pitch editing mode and draw pitch modulation curves per color (pitch modulation is always active)
 8. **Pitch Seq Length**: Use the "Pitch Len:" dropdown to set each color's pitch sequencer loop length (1-64 bars)
 9. **Scale Selection**: Choose root note and scale type to constrain notes to a musical scale
 10. **Start Playback**: Press play in your DAW to hear your pattern
@@ -251,7 +251,7 @@ For detailed testing instructions, see [BUILD_AND_TEST.md](BUILD_AND_TEST.md)
 - **Tempo Synchronization**: Tight integration with host DAW tempo and transport
 - **Flexible Quantization**: Per-color quantization from 1/32 note to 1 bar
 - **Scale Filtering**: Snap notes to musical scales (16 scales including Major, Minor, modes, Pentatonic, Blues, etc.)
-- **Per-Color Pitch Sequencer**: Each color has its own pitch modulation waveform and independent loop length (1-64 bars for polyrhythmic patterns)
+- **Per-Color Pitch Sequencer**: Each color has its own pitch modulation waveform and independent loop length (1-64 bars for polyrhythmic patterns). Pitch modulation is always active regardless of editing mode.
 - **Loop Lengths**: 1, 2, or 4 bar patterns (controls playback speed, not square positions)
 - **Time Signatures**: Support for various time signatures (1-16 numerator, 1/2/4/8/16 denominator)
 - **Preset Support**: Full state saving/loading through DAW preset system

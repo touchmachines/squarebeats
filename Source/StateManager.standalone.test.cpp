@@ -125,11 +125,15 @@ void testPitchSequencerRoundTrip()
 {
     PatternModel original;
     
-    // Set up pitch sequencer
+    // Set up pitch sequencer editing mode
     PitchSequencer& pitchSeq = original.getPitchSequencer();
-    pitchSeq.visible = true;
-    pitchSeq.loopLengthBars = 8;
-    pitchSeq.waveform = {0.0f, 1.5f, -2.3f, 0.7f, -1.0f};
+    pitchSeq.editingPitch = true;
+    
+    // Set up per-color pitch waveform (waveforms are per-color now)
+    ColorChannelConfig config = original.getColorConfig(0);
+    config.pitchSeqLoopLengthBars = 8;
+    config.pitchWaveform = {0.0f, 1.5f, -2.3f, 0.7f, -1.0f};
+    original.setColorConfig(0, config);
     
     juce::MemoryBlock stateData;
     StateManager::saveState(original, stateData);
@@ -141,14 +145,16 @@ void testPitchSequencerRoundTrip()
     assert(success);
     
     const PitchSequencer& loadedPitchSeq = loaded.getPitchSequencer();
-    assert(loadedPitchSeq.visible == true);
-    assert(loadedPitchSeq.loopLengthBars == 8);
-    assert(loadedPitchSeq.waveform.size() == 5);
-    assert(loadedPitchSeq.waveform[0] == 0.0f);
-    assert(loadedPitchSeq.waveform[1] == 1.5f);
-    assert(loadedPitchSeq.waveform[2] == -2.3f);
-    assert(loadedPitchSeq.waveform[3] == 0.7f);
-    assert(loadedPitchSeq.waveform[4] == -1.0f);
+    assert(loadedPitchSeq.editingPitch == true);
+    
+    const ColorChannelConfig& loadedConfig = loaded.getColorConfig(0);
+    assert(loadedConfig.pitchSeqLoopLengthBars == 8);
+    assert(loadedConfig.pitchWaveform.size() == 5);
+    assert(loadedConfig.pitchWaveform[0] == 0.0f);
+    assert(loadedConfig.pitchWaveform[1] == 1.5f);
+    assert(loadedConfig.pitchWaveform[2] == -2.3f);
+    assert(loadedConfig.pitchWaveform[3] == 0.7f);
+    assert(loadedConfig.pitchWaveform[4] == -1.0f);
     
     std::cout << "✓ Pitch sequencer round-trip test passed\n";
 }
@@ -234,14 +240,18 @@ void testComplexPatternRoundTrip()
         original.setColorConfig(i, config);
     }
     
-    // Set up pitch sequencer
+    // Set up pitch sequencer editing mode
     PitchSequencer& pitchSeq = original.getPitchSequencer();
-    pitchSeq.visible = true;
-    pitchSeq.loopLengthBars = 16;
+    pitchSeq.editingPitch = true;
+    
+    // Set up per-color pitch waveform
+    ColorChannelConfig config = original.getColorConfig(0);
+    config.pitchSeqLoopLengthBars = 16;
     for (int i = 0; i < 100; ++i)
     {
-        pitchSeq.waveform.push_back(std::sin(i * 0.1f) * 5.0f);
+        config.pitchWaveform.push_back(std::sin(i * 0.1f) * 5.0f);
     }
+    original.setColorConfig(0, config);
     
     juce::MemoryBlock stateData;
     StateManager::saveState(original, stateData);
@@ -255,8 +265,8 @@ void testComplexPatternRoundTrip()
     assert(loaded.getLoopLength() == 2);
     assert(loaded.getTimeSignature().numerator == 7);
     assert(loaded.getTimeSignature().denominator == 8);
-    assert(loaded.getPitchSequencer().waveform.size() == 100);
-    assert(loaded.getPitchSequencer().loopLengthBars == 16);
+    assert(loaded.getColorConfig(0).pitchWaveform.size() == 100);
+    assert(loaded.getColorConfig(0).pitchSeqLoopLengthBars == 16);
     
     std::cout << "✓ Complex pattern round-trip test passed\n";
 }

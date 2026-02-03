@@ -115,12 +115,12 @@ struct ColorChannelConfig {
 struct PitchSequencer {
     std::vector<float> waveform;
     int loopLengthBars;
-    bool visible;
+    bool editingPitch;  // True when editing pitch sequence, false when editing squares
     
-    PitchSequencer() : loopLengthBars(2), visible(false) {}
+    PitchSequencer() : loopLengthBars(2), editingPitch(false) {}
     
     float getPitchOffsetAt(double normalizedPosition) const {
-        if (waveform.empty() || !visible) {
+        if (waveform.empty()) {
             return 0.0f;
         }
         
@@ -182,7 +182,10 @@ public:
     
     void updateVisibility() {
         auto& pitchSequencer = patternModel.getPitchSequencer();
-        setVisible(pitchSequencer.visible);
+        // Component is always visible (waveform always shows)
+        setVisible(true);
+        // Mouse interception depends on editing mode
+        setInterceptsMouseClicks(pitchSequencer.editingPitch, false);
     }
     
     void setWaveformResolution(int numSamples) {
@@ -230,7 +233,7 @@ public:
     
     void simulateMouseDown(float x, float y) {
         auto& pitchSequencer = patternModel.getPitchSequencer();
-        if (!pitchSequencer.visible) return;
+        if (!pitchSequencer.editingPitch) return;
         
         isDrawing = true;
         float normalizedX = juce::jlimit(0.0f, 1.0f, pixelXToNormalized(x));
@@ -270,10 +273,12 @@ void testInitialization()
     PatternModel model;
     PitchSequencerComponentTest component(model);
     
-    // Test initial state - should be hidden by default
+    // Test initial state - should not be in editing mode by default
     auto& pitchSequencer = model.getPitchSequencer();
-    assert(!pitchSequencer.visible);
-    assert(!component.isVisible());
+    assert(!pitchSequencer.editingPitch);
+    
+    // Component is always visible now (waveform always shows)
+    assert(component.isVisible());
     
     // Test waveform is initialized
     assert(!pitchSequencer.waveform.empty());
@@ -290,27 +295,28 @@ void testInitialization()
 
 void testVisibilityToggle()
 {
-    std::cout << "Testing visibility toggle..." << std::endl;
+    std::cout << "Testing editing mode toggle..." << std::endl;
     
     PatternModel model;
     PitchSequencerComponentTest component(model);
     auto& pitchSequencer = model.getPitchSequencer();
     
-    // Initially hidden
-    assert(!pitchSequencer.visible);
-    assert(!component.isVisible());
-    
-    // Show the component
-    pitchSequencer.visible = true;
-    component.updateVisibility();
+    // Initially not in editing mode
+    assert(!pitchSequencer.editingPitch);
+    // But component is always visible (waveform always shows)
     assert(component.isVisible());
     
-    // Hide the component
-    pitchSequencer.visible = false;
+    // Enable editing mode
+    pitchSequencer.editingPitch = true;
     component.updateVisibility();
-    assert(!component.isVisible());
+    assert(component.isVisible()); // Still visible
     
-    std::cout << "  ✓ Visibility toggle tests passed" << std::endl;
+    // Disable editing mode
+    pitchSequencer.editingPitch = false;
+    component.updateVisibility();
+    assert(component.isVisible()); // Still visible (waveform always shows)
+    
+    std::cout << "  ✓ Editing mode toggle tests passed" << std::endl;
 }
 
 void testWaveformResolution()
@@ -394,8 +400,8 @@ void testWaveformRecording()
     // Set component bounds
     component.bounds = juce::Rectangle(0.0f, 0.0f, 800.0f, 400.0f);
     
-    // Make visible for recording
-    pitchSequencer.visible = true;
+    // Enable editing mode for recording
+    pitchSequencer.editingPitch = true;
     component.updateVisibility();
     
     // Record some pitch offsets at specific positions
@@ -423,7 +429,7 @@ void testWaveformRecording()
 
 void testRecordingWhenHidden()
 {
-    std::cout << "Testing recording when hidden..." << std::endl;
+    std::cout << "Testing recording when not in editing mode..." << std::endl;
     
     PatternModel model;
     PitchSequencerComponentTest component(model);
@@ -432,10 +438,10 @@ void testRecordingWhenHidden()
     // Set component bounds
     component.bounds = juce::Rectangle(0.0f, 0.0f, 800.0f, 400.0f);
     
-    // Keep hidden (default state)
-    assert(!pitchSequencer.visible);
+    // Keep not in editing mode (default state)
+    assert(!pitchSequencer.editingPitch);
     
-    // Try to record - should not work when hidden
+    // Try to record - should not work when not in editing mode
     component.simulateMouseDown(400.0f, 100.0f);
     component.simulateMouseUp();
     
@@ -445,7 +451,7 @@ void testRecordingWhenHidden()
         assert(value == 0.0f);
     }
     
-    std::cout << "  ✓ Recording when hidden tests passed" << std::endl;
+    std::cout << "  ✓ Recording when not in editing mode tests passed" << std::endl;
 }
 
 void testPitchOffsetClamping()
@@ -459,8 +465,8 @@ void testPitchOffsetClamping()
     // Set component bounds
     component.bounds = juce::Rectangle(0.0f, 0.0f, 800.0f, 400.0f);
     
-    // Make visible
-    pitchSequencer.visible = true;
+    // Enable editing mode
+    pitchSequencer.editingPitch = true;
     component.updateVisibility();
     
     // Try to record values beyond the range

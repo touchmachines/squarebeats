@@ -125,26 +125,27 @@ void testPitchSequencerComponent()
     PatternModel model;
     PitchSequencerComponent pitchSeq(model);
     
-    // Test initial state - should be hidden by default
+    // Test initial state - should not be in editing mode by default
     auto& pitchSequencer = model.getPitchSequencer();
-    assert(!pitchSequencer.visible);
-    assert(!pitchSeq.isVisible());
+    assert(!pitchSequencer.editingPitch);
+    
+    // Component is always visible now (waveform always shows)
+    assert(pitchSeq.isVisible());
     
     // Test waveform resolution
     assert(pitchSeq.getWaveformResolution() == 256); // Default resolution
     
     pitchSeq.setWaveformResolution(512);
     assert(pitchSeq.getWaveformResolution() == 512);
-    assert(pitchSequencer.waveform.size() == 512);
     
-    // Test visibility update
-    pitchSequencer.visible = true;
+    // Test editing mode toggle
+    pitchSequencer.editingPitch = true;
     pitchSeq.updateVisibility();
-    assert(pitchSeq.isVisible());
+    assert(pitchSeq.isVisible()); // Still visible
     
-    pitchSequencer.visible = false;
+    pitchSequencer.editingPitch = false;
     pitchSeq.updateVisibility();
-    assert(!pitchSeq.isVisible());
+    assert(pitchSeq.isVisible()); // Still visible (waveform always shows)
     
     std::cout << "  ✓ PitchSequencerComponent tests passed" << std::endl;
 }

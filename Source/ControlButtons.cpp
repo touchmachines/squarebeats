@@ -62,15 +62,15 @@ void ControlButtons::setSelectedColorChannel(int colorChannelId)
 
 void ControlButtons::refreshFromModel()
 {
-    // Update pitch sequencer toggle button text
+    // Update editing mode toggle button text
     auto& pitchSequencer = patternModel.getPitchSequencer();
-    if (pitchSequencer.visible)
+    if (pitchSequencer.editingPitch)
     {
-        pitchSequencerToggle.setButtonText("Hide Pitch Sequencer");
+        pitchSequencerToggle.setButtonText("Edit Squares");
     }
     else
     {
-        pitchSequencerToggle.setButtonText("Show Pitch Sequencer");
+        pitchSequencerToggle.setButtonText("Edit Pitch Sequence");
     }
     
     // Update pitch sequencer length dropdown based on selected color
@@ -104,8 +104,8 @@ void ControlButtons::setupComponents()
     clearAllButton.onClick = [this]() { onClearAllClicked(); };
     addAndMakeVisible(clearAllButton);
     
-    // Pitch Sequencer toggle button
-    pitchSequencerToggle.setButtonText("Show Pitch Sequencer");
+    // Pitch Sequencer toggle button (editing mode toggle)
+    pitchSequencerToggle.setButtonText("Edit Pitch Sequence");
     pitchSequencerToggle.onClick = [this]() { onPitchSequencerToggleClicked(); };
     addAndMakeVisible(pitchSequencerToggle);
     
@@ -139,17 +139,17 @@ void ControlButtons::onClearAllClicked()
 
 void ControlButtons::onPitchSequencerToggleClicked()
 {
-    // Toggle pitch sequencer visibility
+    // Toggle pitch sequencer editing mode
     auto& pitchSequencer = patternModel.getPitchSequencer();
-    pitchSequencer.visible = !pitchSequencer.visible;
+    pitchSequencer.editingPitch = !pitchSequencer.editingPitch;
     
     // Update button text
     refreshFromModel();
     
-    // Notify listeners
+    // Notify listeners (so PitchSequencerComponent updates mouse interception)
     for (auto* listener : listeners)
     {
-        listener->pitchSequencerVisibilityChanged(pitchSequencer.visible);
+        listener->pitchSequencerVisibilityChanged(pitchSequencer.editingPitch);
     }
 }
 

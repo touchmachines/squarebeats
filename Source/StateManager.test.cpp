@@ -112,11 +112,15 @@ TEST_CASE("StateManager serialization and deserialization", "[StateManager]")
     {
         PatternModel original;
         
-        // Set up pitch sequencer
+        // Set up pitch sequencer editing mode
         PitchSequencer& pitchSeq = original.getPitchSequencer();
-        pitchSeq.visible = true;
-        pitchSeq.loopLengthBars = 8;
-        pitchSeq.waveform = {0.0f, 1.5f, -2.3f, 0.7f, -1.0f};
+        pitchSeq.editingPitch = true;
+        
+        // Set up per-color pitch waveform (waveforms are per-color now)
+        ColorChannelConfig& colorConfig = original.getColorConfig(0);
+        colorConfig.pitchSeqLoopLengthBars = 8;
+        colorConfig.pitchWaveform = {0.0f, 1.5f, -2.3f, 0.7f, -1.0f};
+        original.setColorConfig(0, colorConfig);
         
         juce::MemoryBlock stateData;
         StateManager::saveState(original, stateData);
@@ -128,14 +132,16 @@ TEST_CASE("StateManager serialization and deserialization", "[StateManager]")
         REQUIRE(success);
         
         const PitchSequencer& loadedPitchSeq = loaded.getPitchSequencer();
-        REQUIRE(loadedPitchSeq.visible == true);
-        REQUIRE(loadedPitchSeq.loopLengthBars == 8);
-        REQUIRE(loadedPitchSeq.waveform.size() == 5);
-        REQUIRE(loadedPitchSeq.waveform[0] == 0.0f);
-        REQUIRE(loadedPitchSeq.waveform[1] == 1.5f);
-        REQUIRE(loadedPitchSeq.waveform[2] == -2.3f);
-        REQUIRE(loadedPitchSeq.waveform[3] == 0.7f);
-        REQUIRE(loadedPitchSeq.waveform[4] == -1.0f);
+        REQUIRE(loadedPitchSeq.editingPitch == true);
+        
+        const ColorChannelConfig& loadedColorConfig = loaded.getColorConfig(0);
+        REQUIRE(loadedColorConfig.pitchSeqLoopLengthBars == 8);
+        REQUIRE(loadedColorConfig.pitchWaveform.size() == 5);
+        REQUIRE(loadedColorConfig.pitchWaveform[0] == 0.0f);
+        REQUIRE(loadedColorConfig.pitchWaveform[1] == 1.5f);
+        REQUIRE(loadedColorConfig.pitchWaveform[2] == -2.3f);
+        REQUIRE(loadedColorConfig.pitchWaveform[3] == 0.7f);
+        REQUIRE(loadedColorConfig.pitchWaveform[4] == -1.0f);
     }
     
     SECTION("Invalid magic number")
@@ -211,14 +217,18 @@ TEST_CASE("StateManager serialization and deserialization", "[StateManager]")
             original.setColorConfig(i, config);
         }
         
-        // Set up pitch sequencer
+        // Set up pitch sequencer editing mode
         PitchSequencer& pitchSeq = original.getPitchSequencer();
-        pitchSeq.visible = true;
-        pitchSeq.loopLengthBars = 16;
+        pitchSeq.editingPitch = true;
+        
+        // Set up per-color pitch waveform
+        ColorChannelConfig& colorConfig = original.getColorConfig(0);
+        colorConfig.pitchSeqLoopLengthBars = 16;
         for (int i = 0; i < 100; ++i)
         {
-            pitchSeq.waveform.push_back(std::sin(i * 0.1f) * 5.0f);
+            colorConfig.pitchWaveform.push_back(std::sin(i * 0.1f) * 5.0f);
         }
+        original.setColorConfig(0, colorConfig);
         
         juce::MemoryBlock stateData;
         StateManager::saveState(original, stateData);
@@ -232,7 +242,7 @@ TEST_CASE("StateManager serialization and deserialization", "[StateManager]")
         REQUIRE(loaded.getLoopLength() == 2);
         REQUIRE(loaded.getTimeSignature().numerator == 7);
         REQUIRE(loaded.getTimeSignature().denominator == 8);
-        REQUIRE(loaded.getPitchSequencer().waveform.size() == 100);
-        REQUIRE(loaded.getPitchSequencer().loopLengthBars == 16);
+        REQUIRE(loaded.getColorConfig(0).pitchWaveform.size() == 100);
+        REQUIRE(loaded.getColorConfig(0).pitchSeqLoopLengthBars == 16);
     }
 }

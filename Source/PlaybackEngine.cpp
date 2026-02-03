@@ -290,9 +290,9 @@ void PlaybackEngine::processSquareTriggers(juce::MidiBuffer& midiMessages,
             }
             
             // Calculate pitch offset for tracking (same logic as in sendNoteOn)
-            const PitchSequencer& pitchSeq = pattern->getPitchSequencer();
+            // Pitch modulation is always applied regardless of editing mode
             float pitchOffset = 0.0f;
-            if (pitchSeq.visible && !config.pitchWaveform.empty()) {
+            if (!config.pitchWaveform.empty()) {
                 double pitchSeqLoopBeats = config.pitchSeqLoopLengthBars * timeSig.getBeatsPerBar();
                 if (pitchSeqLoopBeats > 0.0) {
                     // Use absolute position so pitch sequencer runs independently of main loop
@@ -363,10 +363,10 @@ void PlaybackEngine::sendNoteOn(juce::MidiBuffer& midiMessages, const Square& sq
     const ColorChannelConfig& config = pattern->getColorConfig(colorId);
     
     // Get pitch offset from the color's pitch waveform
-    const PitchSequencer& pitchSeq = pattern->getPitchSequencer();
+    // Pitch modulation is always applied regardless of editing mode
     float pitchOffset = 0.0f;
     
-    if (pitchSeq.visible && !config.pitchWaveform.empty()) {
+    if (!config.pitchWaveform.empty()) {
         // Use absolute position so pitch sequencer runs independently of main loop
         TimeSignature timeSig = pattern->getTimeSignature();
         double pitchSeqLoopBeats = config.pitchSeqLoopLengthBars * timeSig.getBeatsPerBar();

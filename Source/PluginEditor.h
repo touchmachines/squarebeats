@@ -51,6 +51,8 @@ public:
     void timerCallback() override;
 
 private:
+    void onClearAllClicked();
+    
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     SquareBeatsAudioProcessor& audioProcessor;
@@ -64,6 +66,9 @@ private:
     std::unique_ptr<SquareBeats::TimeSignatureControls> timeSignatureControls;
     std::unique_ptr<SquareBeats::ScaleControls> scaleControls;
     std::unique_ptr<SquareBeats::ControlButtons> controlButtons;
+    
+    // Top bar clear all button
+    juce::TextButton clearAllButton;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SquareBeatsAudioProcessorEditor)
 };

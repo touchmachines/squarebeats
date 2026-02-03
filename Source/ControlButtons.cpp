@@ -75,22 +75,8 @@ void ControlButtons::refreshFromModel()
     
     // Update pitch sequencer length dropdown based on selected color
     auto& colorConfig = patternModel.getColorConfig(selectedColorChannel);
-    int currentLength = colorConfig.pitchSeqLoopLengthBars;
-    int itemId = 0;
-    
-    // Map bar values to combo box item IDs (1-based)
-    switch (currentLength)
-    {
-        case 1: itemId = 1; break;
-        case 2: itemId = 2; break;
-        case 4: itemId = 3; break;
-        case 8: itemId = 4; break;
-        case 16: itemId = 5; break;
-        case 32: itemId = 6; break;
-        default: itemId = 2; break; // Default to 2 bars
-    }
-    
-    pitchSeqLengthCombo.setSelectedId(itemId, juce::dontSendNotification);
+    int currentLength = juce::jlimit(1, 64, colorConfig.pitchSeqLoopLengthBars);
+    pitchSeqLengthCombo.setSelectedId(currentLength, juce::dontSendNotification);
 }
 
 //==============================================================================
@@ -128,13 +114,12 @@ void ControlButtons::setupComponents()
     pitchSeqLengthLabel.setJustificationType(juce::Justification::centredRight);
     addAndMakeVisible(pitchSeqLengthLabel);
     
-    // Pitch Sequencer length dropdown
-    pitchSeqLengthCombo.addItem("1 Bar", 1);
-    pitchSeqLengthCombo.addItem("2 Bars", 2);
-    pitchSeqLengthCombo.addItem("4 Bars", 3);
-    pitchSeqLengthCombo.addItem("8 Bars", 4);
-    pitchSeqLengthCombo.addItem("16 Bars", 5);
-    pitchSeqLengthCombo.addItem("32 Bars", 6);
+    // Pitch Sequencer length dropdown (1-64 bars for polyrhythmic expressions)
+    for (int i = 1; i <= 64; ++i)
+    {
+        juce::String label = (i == 1) ? "1 Bar" : juce::String(i) + " Bars";
+        pitchSeqLengthCombo.addItem(label, i);
+    }
     pitchSeqLengthCombo.setSelectedId(2); // Default to 2 bars
     pitchSeqLengthCombo.onChange = [this]() { onPitchSeqLengthChanged(); };
     addAndMakeVisible(pitchSeqLengthCombo);
@@ -180,19 +165,8 @@ void ControlButtons::onClearPitchSequencerClicked()
 
 void ControlButtons::onPitchSeqLengthChanged()
 {
-    // Map combo box item ID to bar value
-    int itemId = pitchSeqLengthCombo.getSelectedId();
-    int bars = 2; // Default
-    
-    switch (itemId)
-    {
-        case 1: bars = 1; break;
-        case 2: bars = 2; break;
-        case 3: bars = 4; break;
-        case 4: bars = 8; break;
-        case 5: bars = 16; break;
-        case 6: bars = 32; break;
-    }
+    // Item ID directly corresponds to bar value (1-64)
+    int bars = juce::jlimit(1, 64, pitchSeqLengthCombo.getSelectedId());
     
     // Update the pitch sequencer loop length for the selected color
     auto& colorConfig = patternModel.getColorConfig(selectedColorChannel);

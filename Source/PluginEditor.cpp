@@ -48,6 +48,11 @@ SquareBeatsAudioProcessorEditor::SquareBeatsAudioProcessorEditor (SquareBeatsAud
     );
     addAndMakeVisible(scaleControls.get());
     
+    // Create clear all button (top bar)
+    clearAllButton.setButtonText("Clear All");
+    clearAllButton.onClick = [this]() { onClearAllClicked(); };
+    addAndMakeVisible(clearAllButton);
+    
     // Create control buttons
     controlButtons = std::make_unique<SquareBeats::ControlButtons>(
         audioProcessor.getPatternModel()
@@ -97,13 +102,15 @@ void SquareBeatsAudioProcessorEditor::resized()
 {
     auto bounds = getLocalBounds();
     
-    // Top bar: Loop length selector, time signature controls, and scale controls
+    // Top bar: Loop length selector, time signature controls, scale controls, and clear all button
     auto topBar = bounds.removeFromTop(60);
     loopLengthSelector->setBounds(topBar.removeFromLeft(250));
     topBar.removeFromLeft(10); // Spacing
     timeSignatureControls->setBounds(topBar.removeFromLeft(200));
     topBar.removeFromLeft(10); // Spacing
     scaleControls->setBounds(topBar.removeFromLeft(290));
+    topBar.removeFromLeft(10); // Spacing
+    clearAllButton.setBounds(topBar.removeFromLeft(80).reduced(0, 15));
     
     // Right panel: Color selector, config panel, and control buttons
     auto rightPanel = bounds.removeFromRight(250);
@@ -212,4 +219,22 @@ void SquareBeatsAudioProcessorEditor::timerCallback()
         float pitchSeqPosition = audioProcessor.getPlaybackEngine().getNormalizedPitchSeqPosition(selectedColor);
         pitchSequencer->setPlaybackPosition(pitchSeqPosition);
     }
+}
+
+void SquareBeatsAudioProcessorEditor::onClearAllClicked()
+{
+    auto& patternModel = audioProcessor.getPatternModel();
+    
+    // Clear all squares from all 4 color channels
+    for (int i = 0; i < 4; ++i)
+    {
+        patternModel.clearColorChannel(i);
+        
+        // Clear pitch sequencer waveform for this color
+        auto& colorConfig = patternModel.getColorConfig(i);
+        std::fill(colorConfig.pitchWaveform.begin(), colorConfig.pitchWaveform.end(), 0.0f);
+    }
+    
+    // Trigger UI update
+    patternModel.sendChangeMessage();
 }

@@ -1,0 +1,300 @@
+#include "StateManager.h"
+
+namespace SquareBeats {
+
+//==============================================================================
+void StateManager::saveState(const PatternModel& model, juce::MemoryBlock& destData)
+{
+    juce::MemoryOutputStream stream(destData, false);
+    
+    // Write magic number and version
+    stream.writeInt(MAGIC_NUMBER);
+    stream.writeInt(VERSION);
+    
+    // Write global settings
+    stream.writeInt(model.getLoopLength());
+    
+    TimeSignature timeSig = model.getTimeSignature();
+    stream.writeInt(timeSig.numerator);
+    stream.writeInt(timeSig.denominator);
+    
+    // Write squares
+    auto squares = model.getAllSquares();
+    stream.writeInt(static_cast<int>(squares.size()));
+    
+    for (const Square* square : squares)
+    {
+        stream.writeFloat(square->leftEdge);
+        stream.writeFloat(square->width);
+        stream.writeFloat(square->topEdge);
+        stream.writeFloat(square->height);
+        stream.writeInt(square->colorChannelId);
+        stream.writeInt(static_cast<int>(square->uniqueId));
+    }
+    
+    // Write color channel configurations (4 channels) with per-color pitch waveforms
+    for (int i = 0; i < 4; ++i)
+    {
+        const ColorChannelConfig& config = model.getColorConfig(i);
+        stream.writeInt(config.midiChannel);
+        stream.writeInt(config.highNote);
+        stream.writeInt(config.lowNote);
+        stream.writeInt(static_cast<int>(config.quantize));
+        stream.writeInt(static_cast<int>(config.displayColor.getARGB()));
+        stream.writeInt(config.pitchSeqLoopLengthBars);
+        
+        // Write per-color pitch waveform
+        stream.writeInt(static_cast<int>(config.pitchWaveform.size()));
+        for (float value : config.pitchWaveform)
+        {
+            stream.writeFloat(value);
+        }
+    }
+    
+    // Write pitch sequencer global settings (visibility only now)
+    const PitchSequencer& pitchSeq = model.getPitchSequencer();
+    stream.writeBool(pitchSeq.visible);
+    
+    // Write scale configuration (Version 4+)
+    const ScaleConfig& scaleConfig = model.getScaleConfig();
+    stream.writeInt(static_cast<int>(scaleConfig.rootNote));
+    stream.writeInt(static_cast<int>(scaleConfig.scaleType));
+}
+
+//==============================================================================
+bool StateManager::loadState(PatternModel& model, const void* data, int sizeInBytes)
+{
+    // Validate input parameters
+    if (data == nullptr || sizeInBytes < 8)
+    {
+        // Not enough data for magic number and version
+        juce::Logger::writeToLog("StateManager: Invalid input data (null or too small)");
+        return false;
+    }
+    
+    juce::MemoryInputStream stream(data, static_cast<size_t>(sizeInBytes), false);
+    
+    // Validate magic number
+    uint32_t magic = static_cast<uint32_t>(stream.readInt());
+    if (magic != MAGIC_NUMBER)
+    {
+        juce::Logger::writeToLog("StateManager: Invalid magic number (expected 0x" + 
+                                juce::String::toHexString(static_cast<int>(MAGIC_NUMBER)) + 
+                                ", got 0x" + juce::String::toHexString(static_cast<int>(magic)) + ")");
+        return false;
+    }
+    
+    // Validate version (support versions 3 and 4)
+    uint32_t version = static_cast<uint32_t>(stream.readInt());
+    if (version < 3 || version > VERSION)
+    {
+        juce::Logger::writeToLog("StateManager: Unsupported version " + juce::String(version) + 
+                                " (expected 3-" + juce::String(VERSION) + ")");
+        return false;
+    }
+    
+    try
+    {
+        // Check if we have enough data remaining
+        if (stream.getNumBytesRemaining() < 12)  // Need at least 3 ints for global settings
+        {
+            juce::Logger::writeToLog("StateManager: Truncated data (not enough for global settings)");
+            return false;
+        }
+        
+        // Read global settings
+        int loopLength = stream.readInt();
+        int timeSigNumerator = stream.readInt();
+        int timeSigDenominator = stream.readInt();
+        
+        // Validate global settings before applying
+        if (loopLength < 1 || loopLength > 4)
+        {
+            juce::Logger::writeToLog("StateManager: Invalid loop length " + juce::String(loopLength) + ", using default");
+            loopLength = 2;  // Default to 2 bars
+        }
+        
+        if (timeSigNumerator < 1 || timeSigNumerator > 16)
+        {
+            juce::Logger::writeToLog("StateManager: Invalid time signature numerator, using default");
+            timeSigNumerator = 4;
+        }
+        
+        if (timeSigDenominator < 1 || timeSigDenominator > 16)
+        {
+            juce::Logger::writeToLog("StateManager: Invalid time signature denominator, using default");
+            timeSigDenominator = 4;
+        }
+        
+        model.setLoopLength(loopLength);
+        model.setTimeSignature(timeSigNumerator, timeSigDenominator);
+        
+        // Check if we have enough data for square count
+        if (stream.getNumBytesRemaining() < 4)
+        {
+            juce::Logger::writeToLog("StateManager: Truncated data (not enough for square count)");
+            return false;
+        }
+        
+        // Read squares
+        int numSquares = stream.readInt();
+        if (numSquares < 0 || numSquares > 100000)
+        {
+            // Sanity check: unreasonable number of squares
+            juce::Logger::writeToLog("StateManager: Invalid number of squares: " + juce::String(numSquares));
+            return false;
+        }
+        
+        // Clear existing squares before loading
+        for (int i = 0; i < 4; ++i)
+        {
+            model.clearColorChannel(i);
+        }
+        
+        int squaresLoaded = 0;
+        for (int i = 0; i < numSquares; ++i)
+        {
+            // Check if we have enough data for this square (6 values: 4 floats + 2 ints)
+            if (stream.getNumBytesRemaining() < 24)
+            {
+                juce::Logger::writeToLog("StateManager: Truncated data while reading squares (loaded " + 
+                                        juce::String(squaresLoaded) + " of " + juce::String(numSquares) + ")");
+                break;  // Stop loading squares but continue with rest of state
+            }
+            
+            float leftEdge = stream.readFloat();
+            float width = stream.readFloat();
+            float topEdge = stream.readFloat();
+            float height = stream.readFloat();
+            int colorChannelId = stream.readInt();
+            int uniqueId = stream.readInt();
+            (void)uniqueId; // Unused - new ID will be assigned
+            
+            // Validate square data
+            if (std::isnan(leftEdge) || std::isnan(width) || 
+                std::isnan(topEdge) || std::isnan(height))
+            {
+                juce::Logger::writeToLog("StateManager: Invalid square coordinates (NaN) at index " + juce::String(i));
+                continue; // Skip this square but continue loading
+            }
+            
+            if (std::isinf(leftEdge) || std::isinf(width) || 
+                std::isinf(topEdge) || std::isinf(height))
+            {
+                juce::Logger::writeToLog("StateManager: Invalid square coordinates (Inf) at index " + juce::String(i));
+                continue; // Skip this square but continue loading
+            }
+            
+            // Create square (PatternModel will clamp values to valid ranges)
+            model.createSquare(leftEdge, topEdge, width, height, colorChannelId);
+            squaresLoaded++;
+        }
+        
+        // Read color channel configurations with per-color pitch waveforms
+        for (int i = 0; i < 4; ++i)
+        {
+            if (stream.getNumBytesRemaining() < 24)  // 6 ints minimum (including pitchSeqLoopLengthBars)
+            {
+                juce::Logger::writeToLog("StateManager: Truncated data (not enough for color config " + juce::String(i) + ")");
+                break;
+            }
+            
+            ColorChannelConfig config;
+            config.midiChannel = stream.readInt();
+            config.highNote = stream.readInt();
+            config.lowNote = stream.readInt();
+            config.quantize = static_cast<QuantizationValue>(stream.readInt());
+            config.displayColor = juce::Colour(static_cast<uint32_t>(stream.readInt()));
+            config.pitchSeqLoopLengthBars = juce::jlimit(1, 32, stream.readInt());
+            
+            // Read per-color pitch waveform
+            if (stream.getNumBytesRemaining() < 4)
+            {
+                juce::Logger::writeToLog("StateManager: Truncated data (not enough for waveform size)");
+                break;
+            }
+            
+            int waveformSize = stream.readInt();
+            if (waveformSize < 0 || waveformSize > 1000000)
+            {
+                juce::Logger::writeToLog("StateManager: Invalid waveform size: " + juce::String(waveformSize));
+                waveformSize = 0;
+            }
+            
+            if (stream.getNumBytesRemaining() < waveformSize * 4)
+            {
+                juce::Logger::writeToLog("StateManager: Truncated data (not enough for waveform data)");
+                waveformSize = static_cast<int>(stream.getNumBytesRemaining() / 4);
+            }
+            
+            config.pitchWaveform.clear();
+            config.pitchWaveform.reserve(waveformSize);
+            for (int j = 0; j < waveformSize; ++j)
+            {
+                float value = stream.readFloat();
+                if (!std::isnan(value) && !std::isinf(value))
+                {
+                    config.pitchWaveform.push_back(value);
+                }
+                else
+                {
+                    config.pitchWaveform.push_back(0.0f);
+                }
+            }
+            
+            // If waveform is empty, initialize with default size
+            if (config.pitchWaveform.empty())
+            {
+                config.pitchWaveform.resize(256, 0.0f);
+            }
+            
+            // Validate and clamp values
+            config.midiChannel = juce::jlimit(1, 16, config.midiChannel);
+            config.highNote = juce::jlimit(0, 127, config.highNote);
+            config.lowNote = juce::jlimit(0, 127, config.lowNote);
+            
+            // Validate quantization value
+            if (config.quantize < Q_1_32 || config.quantize > Q_1_BAR)
+            {
+                config.quantize = Q_1_16;
+            }
+            
+            model.setColorConfig(i, config);
+        }
+        
+        // Read pitch sequencer global settings (visibility only)
+        if (stream.getNumBytesRemaining() >= 1)
+        {
+            bool pitchSeqVisible = stream.readBool();
+            
+            PitchSequencer& pitchSeq = model.getPitchSequencer();
+            pitchSeq.visible = pitchSeqVisible;
+        }
+        
+        // Read scale configuration (Version 4+)
+        if (version >= 4 && stream.getNumBytesRemaining() >= 8)
+        {
+            int rootNote = stream.readInt();
+            int scaleType = stream.readInt();
+            
+            ScaleConfig scaleConfig;
+            scaleConfig.rootNote = static_cast<RootNote>(juce::jlimit(0, 11, rootNote));
+            scaleConfig.scaleType = static_cast<ScaleType>(juce::jlimit(0, static_cast<int>(NUM_SCALE_TYPES) - 1, scaleType));
+            model.setScaleConfig(scaleConfig);
+        }
+        
+        return true;
+    }
+    catch (const std::exception& e)
+    {
+        juce::Logger::writeToLog("StateManager: Exception during deserialization: " + juce::String(e.what()));
+        return false;
+    }
+    catch (...)
+    {
+        juce::Logger::writeToLog("StateManager: Unknown exception during deserialization");
+        return false;
+    }
+}
+
+} // namespace SquareBeats

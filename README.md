@@ -33,8 +33,14 @@ Configuration for each color channel:
 - `quantize`: Quantization value (1/32 to 1 bar)
 - `displayColor`: UI rendering color
 - `pitchWaveform`: Per-color pitch sequencer waveform (semitones)
-- `pitchSeqLoopLengthBars`: Per-color pitch sequencer loop length (1-32 bars)
+- `pitchSeqLoopLengthBars`: Per-color pitch sequencer loop length (1-64 bars)
 - `getPitchOffsetAt()`: Get interpolated pitch offset at position
+
+### ScaleConfig
+Scale configuration for note filtering:
+- `rootNote`: Root note (C through B)
+- `scaleType`: Scale type (Chromatic, Major, Minor, modes, etc.)
+- `snapToScale()`: Snap MIDI note to nearest scale degree
 
 ### PitchSequencer
 Global pitch sequencer settings:
@@ -222,8 +228,9 @@ cp -r "build/SquareBeats_artefacts/Release/VST3/SquareBeats.vst3" "~/Library/Aud
 5. **Delete Squares**: Double-click any square to remove it
 6. **Configure Colors**: Select different colors for different MIDI channels
 7. **Pitch Sequencer**: Click "Show Pitch Sequencer" and draw pitch modulation curves per color
-8. **Pitch Seq Length**: Use the "Pitch Len:" dropdown to set each color's pitch sequencer loop length (1-32 bars)
-9. **Start Playback**: Press play in your DAW to hear your pattern
+8. **Pitch Seq Length**: Use the "Pitch Len:" dropdown to set each color's pitch sequencer loop length (1-64 bars)
+9. **Scale Selection**: Choose root note and scale type to constrain notes to a musical scale
+10. **Start Playback**: Press play in your DAW to hear your pattern
 
 For detailed testing instructions, see [BUILD_AND_TEST.md](BUILD_AND_TEST.md)
 
@@ -243,7 +250,8 @@ For detailed testing instructions, see [BUILD_AND_TEST.md](BUILD_AND_TEST.md)
 - **4 Color Channels**: Independent MIDI routing and configuration per color
 - **Tempo Synchronization**: Tight integration with host DAW tempo and transport
 - **Flexible Quantization**: Per-color quantization from 1/32 note to 1 bar
-- **Per-Color Pitch Sequencer**: Each color has its own pitch modulation waveform and independent loop length (1-32 bars)
+- **Scale Filtering**: Snap notes to musical scales (16 scales including Major, Minor, modes, Pentatonic, Blues, etc.)
+- **Per-Color Pitch Sequencer**: Each color has its own pitch modulation waveform and independent loop length (1-64 bars for polyrhythmic patterns)
 - **Loop Lengths**: 1, 2, or 4 bar patterns (controls playback speed, not square positions)
 - **Time Signatures**: Support for various time signatures (1-16 numerator, 1/2/4/8/16 denominator)
 - **Preset Support**: Full state saving/loading through DAW preset system
@@ -253,9 +261,11 @@ For detailed testing instructions, see [BUILD_AND_TEST.md](BUILD_AND_TEST.md)
 - **Real-time Playback Indicators**: Visual feedback for both main sequencer and pitch sequencer positions
 - **Color Configuration Panel**: Per-color settings for quantization, pitch range, and MIDI channel
 - **Loop Length Selector**: Quick switching between 1, 2, and 4 bar loops
-- **Pitch Sequencer Length**: Per-color dropdown for 1-32 bar pitch sequencer loops
+- **Scale Controls**: Root note and scale type selection (Chromatic, Major, Minor, Harmonic Minor, Melodic Minor, Pentatonic Major/Minor, Blues, Dorian, Phrygian, Lydian, Mixolydian, Locrian, Whole Tone, Diminished)
+- **Pitch Sequencer Length**: Per-color dropdown for 1-64 bar pitch sequencer loops
 - **Time Signature Controls**: Easy time signature configuration
-- **Clear All Button**: Remove all squares of selected color
+- **Clear All Button**: Remove all squares and pitch waveforms from all colors (top bar)
+- **Clear Color Button**: Remove all squares of selected color (side panel)
 - **Clear Pitch Sequencer Button**: Reset the selected color's pitch waveform
 - **Double-Click to Delete**: Double-click any square to remove it
 

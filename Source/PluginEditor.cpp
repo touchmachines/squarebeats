@@ -56,12 +56,6 @@ SquareBeatsAudioProcessorEditor::SquareBeatsAudioProcessorEditor (SquareBeatsAud
     );
     addAndMakeVisible(loopLengthSelector.get());
     
-    // Create time signature controls
-    timeSignatureControls = std::make_unique<SquareBeats::TimeSignatureControls>(
-        audioProcessor.getPatternModel()
-    );
-    addAndMakeVisible(timeSignatureControls.get());
-    
     // Create scale controls
     scaleControls = std::make_unique<SquareBeats::ScaleControls>(
         audioProcessor.getPatternModel()
@@ -192,8 +186,6 @@ void SquareBeatsAudioProcessorEditor::resized()
     
     loopLengthSelector->setBounds(topBar.removeFromLeft(200));
     topBar.removeFromLeft(10); // Spacing
-    timeSignatureControls->setBounds(topBar.removeFromLeft(200));
-    topBar.removeFromLeft(10); // Spacing
     scaleControls->setBounds(topBar.removeFromLeft(290));
     topBar.removeFromLeft(10); // Spacing
     scaleSeqToggle.setBounds(topBar.removeFromLeft(70).reduced(0, 15));
@@ -295,11 +287,6 @@ void SquareBeatsAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadca
     if (loopLengthSelector != nullptr)
     {
         loopLengthSelector->refreshFromModel();
-    }
-    
-    if (timeSignatureControls != nullptr)
-    {
-        timeSignatureControls->refreshFromModel();
     }
     
     if (scaleControls != nullptr)

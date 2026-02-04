@@ -305,7 +305,7 @@ For detailed testing instructions, see [BUILD_AND_TEST.md](BUILD_AND_TEST.md)
   - **Pendulum (<-->)**: Bounces back and forth
   - **Probability (--?>)**: Random step jumps with configurable step size and probability via XY pad
 - **Loop Lengths**: 1-15 steps, 1-8 bars, 16/32/64 bars (controls playback speed, not square positions)
-- **Time Signatures**: Support for various time signatures (1-16 numerator, 1/2/4/8/16 denominator)
+- **Time Signature**: Fixed at 4/4 for simplicity
 - **Preset Support**: Full state saving/loading through DAW preset system
 
 ### User Interface
@@ -321,7 +321,6 @@ For detailed testing instructions, see [BUILD_AND_TEST.md](BUILD_AND_TEST.md)
 - **Scale Sequencer Panel**: Timeline editor for chaining key/scale changes. Click segments to edit, drag edges to resize, click "+" to add new segments. Toggle with "Scale Seq" button.
 - **Play Mode Buttons**: Located in top bar for easy access - Forward, Backward, Pendulum, or Probability modes
 - **Probability XY Pad**: Appears in side panel only when Probability mode is selected, for controlling step jump size and probability
-- **Time Signature Controls**: Easy time signature configuration
 - **Clear All Button**: Remove all squares and pitch waveforms from all colors (top bar)
 - **Double-Click to Delete**: Double-click any square to remove it
 

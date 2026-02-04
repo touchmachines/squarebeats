@@ -7,7 +7,6 @@
 #include "ColorSelectorComponent.h"
 #include "ColorConfigPanel.h"
 #include "LoopLengthSelector.h"
-#include "TimeSignatureControls.h"
 #include "ScaleControls.h"
 #include "ControlButtons.h"
 #include "PitchSequencerComponent.h"
@@ -73,7 +72,6 @@ private:
     std::unique_ptr<SquareBeats::ColorSelectorComponent> colorSelector;
     std::unique_ptr<SquareBeats::ColorConfigPanel> colorConfigPanel;
     std::unique_ptr<SquareBeats::LoopLengthSelector> loopLengthSelector;
-    std::unique_ptr<SquareBeats::TimeSignatureControls> timeSignatureControls;
     std::unique_ptr<SquareBeats::ScaleControls> scaleControls;
     std::unique_ptr<SquareBeats::ControlButtons> controlButtons;
     std::unique_ptr<SquareBeats::PlayModeButtons> playModeButtons;  // New: buttons in top bar

@@ -104,30 +104,19 @@ bool StateManager::loadState(PatternModel& model, const void* data, int sizeInBy
         
         // Read global settings
         double loopLength = stream.readDouble();
-        int timeSigNumerator = stream.readInt();
-        int timeSigDenominator = stream.readInt();
+        // Time signature is always 4/4 now - read and discard for backward compatibility
+        stream.readInt();  // timeSigNumerator (ignored)
+        stream.readInt();  // timeSigDenominator (ignored)
         
-        // Validate global settings before applying
+        // Validate loop length before applying
         if (loopLength < 1.0 / 16.0 || loopLength > 64.0)
         {
             juce::Logger::writeToLog("StateManager: Invalid loop length " + juce::String(loopLength) + ", using default");
             loopLength = 2.0;  // Default to 2 bars
         }
         
-        if (timeSigNumerator < 1 || timeSigNumerator > 16)
-        {
-            juce::Logger::writeToLog("StateManager: Invalid time signature numerator, using default");
-            timeSigNumerator = 4;
-        }
-        
-        if (timeSigDenominator < 1 || timeSigDenominator > 16)
-        {
-            juce::Logger::writeToLog("StateManager: Invalid time signature denominator, using default");
-            timeSigDenominator = 4;
-        }
-        
         model.setLoopLength(loopLength);
-        model.setTimeSignature(timeSigNumerator, timeSigDenominator);
+        model.setTimeSignature(4, 4);  // Always use 4/4
         
         // Check if we have enough data for square count
         if (stream.getNumBytesRemaining() < 4)

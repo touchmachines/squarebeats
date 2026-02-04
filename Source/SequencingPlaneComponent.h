@@ -47,6 +47,11 @@ public:
     void setPlaybackPosition(float normalizedPosition);
     
     /**
+     * Set the playback position for a specific color channel
+     */
+    void setColorPlaybackPosition(int colorId, float normalizedPosition);
+    
+    /**
      * Get the current playback position
      */
     float getPlaybackPosition() const { return playbackPosition; }
@@ -118,6 +123,7 @@ private:
     // Data members
     PatternModel& patternModel;
     float playbackPosition;
+    float colorPlaybackPositions[4];  // Per-color playback positions
     int selectedColorChannel;
     
     // Mouse interaction state

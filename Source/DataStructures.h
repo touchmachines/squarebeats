@@ -227,7 +227,8 @@ struct ColorChannelConfig {
     QuantizationValue quantize; // Quantization setting
     juce::Colour displayColor; // UI rendering color
     std::vector<float> pitchWaveform; // Per-color pitch sequencer waveform (semitones)
-    int pitchSeqLoopLengthBars; // Per-color pitch sequencer loop length (1-32 bars)
+    int pitchSeqLoopLengthBars; // Per-color pitch sequencer loop length (1-64 bars)
+    double mainLoopLengthBars;  // Per-color main sequencer loop length (0 = use global, >0 = override)
     
     ColorChannelConfig()
         : midiChannel(1)
@@ -236,6 +237,7 @@ struct ColorChannelConfig {
         , quantize(Q_1_16)
         , displayColor(juce::Colours::red)
         , pitchSeqLoopLengthBars(2)
+        , mainLoopLengthBars(0.0)  // 0 = use global loop length
     {}
     
     /**

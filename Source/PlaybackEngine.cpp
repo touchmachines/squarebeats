@@ -17,6 +17,11 @@ PlaybackEngine::PlaybackEngine()
     , totalSteps(16)
     , pendulumForward(true)
 {
+    // Initialize per-color positions
+    for (int i = 0; i < 4; ++i) {
+        colorPositionBeats[i] = 0.0;
+        colorLoopLengthBeats[i] = 0.0;
+    }
 }
 
 //==============================================================================
@@ -30,6 +35,18 @@ void PlaybackEngine::setPatternModel(PatternModel* model)
         double loopBars = pattern->getLoopLength();
         loopLengthBeats = loopBars * timeSig.getBeatsPerBar();
         totalSteps = calculateTotalSteps();
+        
+        // Update per-color loop lengths
+        for (int colorId = 0; colorId < 4; ++colorId) {
+            const ColorChannelConfig& config = pattern->getColorConfig(colorId);
+            if (config.mainLoopLengthBars > 0.0) {
+                // Use per-color override
+                colorLoopLengthBeats[colorId] = config.mainLoopLengthBars * timeSig.getBeatsPerBar();
+            } else {
+                // Use global loop length
+                colorLoopLengthBeats[colorId] = loopLengthBeats;
+            }
+        }
     }
 }
 
@@ -70,6 +87,11 @@ void PlaybackEngine::handleTransportChange(bool playing, double sr, double tempo
         // Reset step position and pendulum direction
         currentStepIndex = 0;
         pendulumForward = true;
+        
+        // Reset per-color positions
+        for (int i = 0; i < 4; ++i) {
+            colorPositionBeats[i] = 0.0;
+        }
     }
     
     // Update absolute position for pitch sequencer (always tracks host)
@@ -99,6 +121,23 @@ void PlaybackEngine::handleTransportChange(bool playing, double sr, double tempo
         }
         
         pendulumForward = true;
+        
+        // Sync per-color positions
+        for (int colorId = 0; colorId < 4; ++colorId) {
+            if (colorLoopLengthBeats[colorId] > 0.0) {
+                double colorHostPos = std::fmod(timeInBeats, colorLoopLengthBeats[colorId]);
+                if (colorHostPos < 0.0) {
+                    colorHostPos += colorLoopLengthBeats[colorId];
+                }
+                
+                if (playModeConfig.mode == PLAY_BACKWARD) {
+                    colorPositionBeats[colorId] = colorLoopLengthBeats[colorId] - colorHostPos;
+                    if (colorPositionBeats[colorId] < 0.0) colorPositionBeats[colorId] = 0.0;
+                } else {
+                    colorPositionBeats[colorId] = colorHostPos;
+                }
+            }
+        }
     }
 }
 
@@ -127,7 +166,61 @@ void PlaybackEngine::updatePlaybackPosition(int numSamples)
     // Track previous step to detect step changes
     int previousStep = currentStepIndex;
     
-    // Advance position based on play mode
+    // Update per-color positions based on play mode
+    for (int colorId = 0; colorId < 4; ++colorId) {
+        double colorLoopBeats = colorLoopLengthBeats[colorId];
+        if (colorLoopBeats <= 0.0) continue;
+        
+        switch (playModeConfig.mode) {
+            case PLAY_FORWARD:
+            default:
+                colorPositionBeats[colorId] += beatsElapsed;
+                if (colorPositionBeats[colorId] >= colorLoopBeats) {
+                    colorPositionBeats[colorId] = std::fmod(colorPositionBeats[colorId], colorLoopBeats);
+                }
+                break;
+                
+            case PLAY_BACKWARD:
+                colorPositionBeats[colorId] -= beatsElapsed;
+                if (colorPositionBeats[colorId] < 0.0) {
+                    colorPositionBeats[colorId] = colorLoopBeats + std::fmod(colorPositionBeats[colorId], colorLoopBeats);
+                }
+                break;
+                
+            case PLAY_PENDULUM:
+                // Note: Pendulum uses shared direction state for simplicity
+                if (pendulumForward) {
+                    colorPositionBeats[colorId] += beatsElapsed;
+                    if (colorPositionBeats[colorId] >= colorLoopBeats) {
+                        colorPositionBeats[colorId] = colorLoopBeats - (colorPositionBeats[colorId] - colorLoopBeats);
+                    }
+                } else {
+                    colorPositionBeats[colorId] -= beatsElapsed;
+                    if (colorPositionBeats[colorId] <= 0.0) {
+                        colorPositionBeats[colorId] = -colorPositionBeats[colorId];
+                    }
+                }
+                break;
+                
+            case PLAY_PROBABILITY:
+                // Probability mode advances normally, jumps handled per-color
+                colorPositionBeats[colorId] += beatsElapsed;
+                if (colorPositionBeats[colorId] >= colorLoopBeats) {
+                    colorPositionBeats[colorId] = std::fmod(colorPositionBeats[colorId], colorLoopBeats);
+                }
+                break;
+        }
+        
+        // Ensure position stays in valid range
+        if (colorPositionBeats[colorId] < 0.0) {
+            colorPositionBeats[colorId] = 0.0;
+        }
+        if (colorPositionBeats[colorId] >= colorLoopBeats) {
+            colorPositionBeats[colorId] = std::fmod(colorPositionBeats[colorId], colorLoopBeats);
+        }
+    }
+    
+    // Advance position based on play mode (for global position tracking)
     switch (playModeConfig.mode) {
         case PLAY_FORWARD:
         default:
@@ -213,6 +306,19 @@ float PlaybackEngine::getNormalizedPlaybackPosition() const
     return static_cast<float>(currentPositionBeats / loopLengthBeats);
 }
 
+float PlaybackEngine::getNormalizedPlaybackPositionForColor(int colorId) const
+{
+    if (colorId < 0 || colorId >= 4) {
+        return 0.0f;
+    }
+    
+    if (colorLoopLengthBeats[colorId] <= 0.0) {
+        return 0.0f;
+    }
+    
+    return static_cast<float>(colorPositionBeats[colorId] / colorLoopLengthBeats[colorId]);
+}
+
 float PlaybackEngine::getNormalizedPitchSeqPosition(int colorId) const
 {
     if (pattern == nullptr) {
@@ -279,6 +385,11 @@ void PlaybackEngine::resetPlaybackPosition()
     absolutePositionBeats = 0.0;
     currentStepIndex = 0;
     
+    // Reset per-color positions
+    for (int i = 0; i < 4; ++i) {
+        colorPositionBeats[i] = 0.0;
+    }
+    
     // Stop all active notes when resetting
     juce::MidiBuffer dummyBuffer;
     stopAllNotes(dummyBuffer);
@@ -290,75 +401,258 @@ void PlaybackEngine::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBu
         return;
     }
     
-    // Recalculate loop length in case it changed
+    // Recalculate loop lengths in case they changed
     TimeSignature timeSig = pattern->getTimeSignature();
     double loopBars = pattern->getLoopLength();
     loopLengthBeats = loopBars * timeSig.getBeatsPerBar();
     
+    // Update per-color loop lengths
+    for (int colorId = 0; colorId < 4; ++colorId) {
+        const ColorChannelConfig& config = pattern->getColorConfig(colorId);
+        if (config.mainLoopLengthBars > 0.0) {
+            colorLoopLengthBeats[colorId] = config.mainLoopLengthBars * timeSig.getBeatsPerBar();
+        } else {
+            colorLoopLengthBeats[colorId] = loopLengthBeats;
+        }
+    }
+    
     int numSamples = buffer.getNumSamples();
     
-    // Store position BEFORE updating (this is where we start this block)
+    // Store positions BEFORE updating
     double blockStartBeats = currentPositionBeats;
+    double colorBlockStartBeats[4];
+    for (int i = 0; i < 4; ++i) {
+        colorBlockStartBeats[i] = colorPositionBeats[i];
+    }
     
     // Update playback position based on play mode
-    // This advances currentPositionBeats according to the selected play mode
     updatePlaybackPosition(numSamples);
     
-    // Now currentPositionBeats is where we END this block
+    // Now we have end positions
     double blockEndBeats = currentPositionBeats;
     
     // Get play mode to determine how to process triggers
     const PlayModeConfig& playModeConfig = pattern->getPlayModeConfig();
     
-    // Process square triggers based on play mode
-    switch (playModeConfig.mode) {
-        case PLAY_FORWARD:
-        default:
-            // Forward: process from start to end
-            if (blockEndBeats < blockStartBeats) {
-                // Wrapped around loop boundary
-                processSquareTriggers(midiMessages, blockStartBeats, loopLengthBeats);
-                processSquareTriggers(midiMessages, 0.0, blockEndBeats);
-            } else {
-                processSquareTriggers(midiMessages, blockStartBeats, blockEndBeats);
-            }
-            break;
-            
-        case PLAY_BACKWARD:
-            // Backward: process from end to start (swap order)
-            if (blockEndBeats > blockStartBeats) {
-                // Wrapped around loop boundary (going backwards from near 0 to near end)
-                processSquareTriggers(midiMessages, 0.0, blockStartBeats);
-                processSquareTriggers(midiMessages, blockEndBeats, loopLengthBeats);
-            } else {
-                processSquareTriggers(midiMessages, blockEndBeats, blockStartBeats);
-            }
-            break;
-            
-        case PLAY_PENDULUM:
-            // Pendulum: direction can change mid-block, process the range we covered
+    // Process each color independently with its own loop length
+    for (int colorId = 0; colorId < 4; ++colorId) {
+        double colorLoopBeats = colorLoopLengthBeats[colorId];
+        if (colorLoopBeats <= 0.0) continue;
+        
+        double colorStartBeats = colorBlockStartBeats[colorId];
+        double colorEndBeats = colorPositionBeats[colorId];
+        
+        // Process square triggers based on play mode
+        switch (playModeConfig.mode) {
+            case PLAY_FORWARD:
+            default:
+                if (colorEndBeats < colorStartBeats) {
+                    // Wrapped around loop boundary
+                    processColorTriggers(midiMessages, colorId, colorStartBeats, colorLoopBeats, colorLoopBeats);
+                    processColorTriggers(midiMessages, colorId, 0.0, colorEndBeats, colorLoopBeats);
+                } else {
+                    processColorTriggers(midiMessages, colorId, colorStartBeats, colorEndBeats, colorLoopBeats);
+                }
+                break;
+                
+            case PLAY_BACKWARD:
+                if (colorEndBeats > colorStartBeats) {
+                    // Wrapped around loop boundary
+                    processColorTriggers(midiMessages, colorId, 0.0, colorStartBeats, colorLoopBeats);
+                    processColorTriggers(midiMessages, colorId, colorEndBeats, colorLoopBeats, colorLoopBeats);
+                } else {
+                    processColorTriggers(midiMessages, colorId, colorEndBeats, colorStartBeats, colorLoopBeats);
+                }
+                break;
+                
+            case PLAY_PENDULUM:
             {
-                double minPos = std::min(blockStartBeats, blockEndBeats);
-                double maxPos = std::max(blockStartBeats, blockEndBeats);
-                processSquareTriggers(midiMessages, minPos, maxPos);
+                double minPos = std::min(colorStartBeats, colorEndBeats);
+                double maxPos = std::max(colorStartBeats, colorEndBeats);
+                processColorTriggers(midiMessages, colorId, minPos, maxPos, colorLoopBeats);
             }
             break;
-            
-        case PLAY_PROBABILITY:
-            // Probability: may have jumped, process around current position
-            // Use a small window around the current step
+                
+            case PLAY_PROBABILITY:
             {
-                double beatsPerStep = loopLengthBeats / std::max(1, totalSteps);
-                double stepStart = currentStepIndex * beatsPerStep;
+                // Calculate steps for this color's loop
+                int colorSteps = std::max(1, static_cast<int>(colorLoopBeats / (timeSig.getBeatsPerBar() / 16.0)));
+                double beatsPerStep = colorLoopBeats / colorSteps;
+                int currentColorStep = static_cast<int>(colorEndBeats / beatsPerStep) % colorSteps;
+                double stepStart = currentColorStep * beatsPerStep;
                 double stepEnd = stepStart + beatsPerStep;
                 
-                // Only trigger if we just entered this step (compare with previous position)
-                if (blockStartBeats < stepStart || blockStartBeats >= stepEnd) {
-                    // We entered a new step this block
-                    processSquareTriggers(midiMessages, stepStart, stepEnd);
+                if (colorStartBeats < stepStart || colorStartBeats >= stepEnd) {
+                    processColorTriggers(midiMessages, colorId, stepStart, stepEnd, colorLoopBeats);
                 }
             }
             break;
+        }
+    }
+}
+
+//==============================================================================
+void PlaybackEngine::processColorTriggers(juce::MidiBuffer& midiMessages, int colorId,
+                                         double startBeats, double endBeats, double loopBeats)
+{
+    if (pattern == nullptr || colorId < 0 || colorId >= 4) {
+        return;
+    }
+    
+    // Validate time signature
+    TimeSignature timeSig = pattern->getTimeSignature();
+    if (timeSig.numerator <= 0 || timeSig.denominator <= 0) {
+        timeSig = TimeSignature(4, 4);
+    }
+    
+    double loopBars = loopBeats / timeSig.getBeatsPerBar();
+    if (loopBars <= 0.0) {
+        return;
+    }
+    
+    const ColorChannelConfig& config = pattern->getColorConfig(colorId);
+    
+    // Calculate quantization interval for this color
+    double beatsPerBar = timeSig.getBeatsPerBar();
+    double quantizeInterval;
+    switch (config.quantize) {
+        case Q_1_32: quantizeInterval = beatsPerBar / 32.0; break;
+        case Q_1_16: quantizeInterval = beatsPerBar / 16.0; break;
+        case Q_1_8:  quantizeInterval = beatsPerBar / 8.0;  break;
+        case Q_1_4:  quantizeInterval = beatsPerBar / 4.0;  break;
+        case Q_1_2:  quantizeInterval = beatsPerBar / 2.0;  break;
+        case Q_1_BAR: quantizeInterval = beatsPerBar;       break;
+        default:     quantizeInterval = beatsPerBar / 16.0; break;
+    }
+    
+    // Expand search range
+    double expandedStartBeats = std::max(0.0, startBeats - quantizeInterval);
+    double expandedEndBeats = endBeats + quantizeInterval;
+    
+    // Convert to normalized coordinates
+    float startNormalized = beatsToNormalized(expandedStartBeats, loopBars, timeSig);
+    float endNormalized = beatsToNormalized(expandedEndBeats, loopBars, timeSig);
+    
+    // Handle wrap-around
+    bool wrapsAroundLoop = endNormalized < startNormalized || endBeats > loopBeats;
+    
+    // Get squares for this color only
+    std::vector<Square*> allSquares;
+    if (wrapsAroundLoop) {
+        auto squares1 = pattern->getSquaresInTimeRange(startNormalized, 1.0f);
+        auto squares2 = pattern->getSquaresInTimeRange(0.0f, endNormalized);
+        allSquares.insert(allSquares.end(), squares1.begin(), squares1.end());
+        allSquares.insert(allSquares.end(), squares2.begin(), squares2.end());
+    } else {
+        allSquares = pattern->getSquaresInTimeRange(startNormalized, endNormalized);
+    }
+    
+    // Filter to only this color
+    std::vector<Square*> squares;
+    for (Square* sq : allSquares) {
+        if (sq != nullptr && sq->colorChannelId == colorId) {
+            squares.push_back(sq);
+        }
+    }
+    
+    // Sort by gate time
+    std::stable_sort(squares.begin(), squares.end(), 
+        [loopBars, &timeSig](const Square* a, const Square* b) {
+            double gateA = normalizedToBeats(a->leftEdge, loopBars, timeSig);
+            double gateB = normalizedToBeats(b->leftEdge, loopBars, timeSig);
+            return gateA < gateB;
+        });
+    
+    // Process each square
+    for (Square* square : squares) {
+        if (square == nullptr) continue;
+        
+        // Calculate gate time
+        double gateTimeBeats = normalizedToBeats(square->leftEdge, loopBars, timeSig);
+        
+        // Apply quantization
+        double quantizedGateBeats = MIDIGenerator::applyQuantization(gateTimeBeats, config.quantize, timeSig);
+        
+        // Wrap to loop length
+        if (quantizedGateBeats >= loopBeats) {
+            quantizedGateBeats = std::fmod(quantizedGateBeats, loopBeats);
+        }
+        
+        // Check if trigger is in block
+        bool triggerInBlock = false;
+        if (wrapsAroundLoop) {
+            double wrappedStart = std::fmod(startBeats, loopBeats);
+            double wrappedEnd = std::fmod(endBeats, loopBeats);
+            
+            if (wrappedEnd < wrappedStart) {
+                triggerInBlock = (quantizedGateBeats >= wrappedStart) || (quantizedGateBeats < wrappedEnd);
+            } else {
+                triggerInBlock = (quantizedGateBeats >= wrappedStart && quantizedGateBeats < wrappedEnd);
+            }
+        } else {
+            triggerInBlock = (quantizedGateBeats >= startBeats && quantizedGateBeats < endBeats);
+        }
+        
+        if (triggerInBlock) {
+            // Calculate sample offset
+            double blockDurationBeats = endBeats - startBeats;
+            int blockSamples = static_cast<int>(blockDurationBeats * 60.0 / bpm * sampleRate);
+            int sampleOffset = calculateSampleOffset(quantizedGateBeats, startBeats, blockSamples);
+            
+            // Monophonic: stop previous note
+            if (activeNotesByColor.find(colorId) != activeNotesByColor.end()) {
+                sendNoteOff(midiMessages, colorId, sampleOffset);
+            }
+            
+            // Send new note-on
+            sendNoteOn(midiMessages, *square, sampleOffset);
+            
+            // Track active note
+            double endTimeBeats = normalizedToBeats(square->getRightEdge(), loopBars, timeSig);
+            if (endTimeBeats > loopBeats) {
+                endTimeBeats = std::fmod(endTimeBeats, loopBeats);
+            }
+            
+            // Calculate pitch offset
+            float pitchOffset = 0.0f;
+            if (!config.pitchWaveform.empty()) {
+                double pitchSeqLoopBeats = config.pitchSeqLoopLengthBars * timeSig.getBeatsPerBar();
+                if (pitchSeqLoopBeats > 0.0) {
+                    double normalizedPitchSeqPos = std::fmod(absolutePositionBeats, pitchSeqLoopBeats) / pitchSeqLoopBeats;
+                    pitchOffset = config.getPitchOffsetAt(normalizedPitchSeqPos);
+                }
+            }
+            
+            int midiNote = MIDIGenerator::calculateMidiNote(*square, config, pitchOffset, pattern->getActiveScale(getPositionInBars()));
+            activeNotesByColor[colorId] = {midiNote, colorId, endTimeBeats};
+        }
+        
+        // Check if note should end
+        auto activeIt = activeNotesByColor.find(colorId);
+        if (activeIt != activeNotesByColor.end()) {
+            double noteEndBeats = activeIt->second.endTime;
+            
+            bool noteEndsInBlock = false;
+            if (wrapsAroundLoop) {
+                double wrappedStart = std::fmod(startBeats, loopBeats);
+                double wrappedEnd = std::fmod(endBeats, loopBeats);
+                
+                if (wrappedEnd < wrappedStart) {
+                    noteEndsInBlock = (noteEndBeats >= wrappedStart) || (noteEndBeats < wrappedEnd);
+                } else {
+                    noteEndsInBlock = (noteEndBeats >= wrappedStart && noteEndBeats < wrappedEnd);
+                }
+            } else {
+                noteEndsInBlock = (noteEndBeats >= startBeats && noteEndBeats < endBeats);
+            }
+            
+            if (noteEndsInBlock) {
+                double blockDurationBeats = endBeats - startBeats;
+                int blockSamples = static_cast<int>(blockDurationBeats * 60.0 / bpm * sampleRate);
+                int sampleOffset = calculateSampleOffset(noteEndBeats, startBeats, blockSamples);
+                sendNoteOff(midiMessages, colorId, sampleOffset);
+            }
+        }
     }
 }
 

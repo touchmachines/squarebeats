@@ -36,7 +36,8 @@ private:
     // Version 3: Per-color pitch sequencer loop length
     // Version 4: Scale configuration (root note and scale type)
     // Version 5: Scale sequencer configuration (enabled state and segments)
-    static constexpr uint32_t VERSION = 5;
+    // Version 6: Per-color main loop length
+    static constexpr uint32_t VERSION = 6;
     
     JUCE_DECLARE_NON_COPYABLE(StateManager)
 };

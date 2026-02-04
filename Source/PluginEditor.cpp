@@ -206,7 +206,7 @@ void SquareBeatsAudioProcessorEditor::resized()
     rightPanel.removeFromTop(10); // Spacing
     
     // Context-sensitive: Show either color config (square mode) or pitch config (pitch mode)
-    colorConfigPanel->setBounds(rightPanel.removeFromTop(270));
+    colorConfigPanel->setBounds(rightPanel.removeFromTop(310));
     
     rightPanel.removeFromTop(10); // Spacing
     controlButtons->setBounds(rightPanel.removeFromTop(0));  // ControlButtons is now empty
@@ -364,6 +364,13 @@ void SquareBeatsAudioProcessorEditor::timerCallback()
     {
         float normalizedPosition = audioProcessor.getPlaybackEngine().getNormalizedPlaybackPosition();
         sequencingPlane->setPlaybackPosition(normalizedPosition);
+        
+        // Update per-color playback positions
+        for (int colorId = 0; colorId < 4; ++colorId)
+        {
+            float colorPos = audioProcessor.getPlaybackEngine().getNormalizedPlaybackPositionForColor(colorId);
+            sequencingPlane->setColorPlaybackPosition(colorId, colorPos);
+        }
     }
     
     // Update pitch sequencer playback position for the selected color

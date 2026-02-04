@@ -42,6 +42,7 @@ void StateManager::saveState(const PatternModel& model, juce::MemoryBlock& destD
         stream.writeInt(static_cast<int>(config.quantize));
         stream.writeInt(static_cast<int>(config.displayColor.getARGB()));
         stream.writeInt(config.pitchSeqLoopLengthBars);
+        stream.writeDouble(config.mainLoopLengthBars);  // Per-color loop length
         
         // Write per-color pitch waveform
         stream.writeInt(static_cast<int>(config.pitchWaveform.size()));
@@ -194,7 +195,8 @@ bool StateManager::loadState(PatternModel& model, const void* data, int sizeInBy
         // Read color channel configurations with per-color pitch waveforms
         for (int i = 0; i < 4; ++i)
         {
-            if (stream.getNumBytesRemaining() < 24)  // 6 ints minimum (including pitchSeqLoopLengthBars)
+            int minBytes = (version >= 6) ? 32 : 24;  // Version 6+ has mainLoopLengthBars (double)
+            if (stream.getNumBytesRemaining() < minBytes)
             {
                 juce::Logger::writeToLog("StateManager: Truncated data (not enough for color config " + juce::String(i) + ")");
                 break;
@@ -207,6 +209,16 @@ bool StateManager::loadState(PatternModel& model, const void* data, int sizeInBy
             config.quantize = static_cast<QuantizationValue>(stream.readInt());
             config.displayColor = juce::Colour(static_cast<uint32_t>(stream.readInt()));
             config.pitchSeqLoopLengthBars = juce::jlimit(1, 64, stream.readInt());
+            
+            // Per-color loop length (Version 6+)
+            if (version >= 6)
+            {
+                config.mainLoopLengthBars = stream.readDouble();
+            }
+            else
+            {
+                config.mainLoopLengthBars = 0.0;  // Default to global
+            }
             
             // Read per-color pitch waveform
             if (stream.getNumBytesRemaining() < 4)

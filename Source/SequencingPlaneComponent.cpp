@@ -16,6 +16,11 @@ SequencingPlaneComponent::SequencingPlaneComponent(PatternModel& model)
     , editStartWidth(0.0f)
     , editStartHeight(0.0f)
 {
+    // Initialize per-color playback positions
+    for (int i = 0; i < 4; ++i) {
+        colorPlaybackPositions[i] = 0.0f;
+    }
+    
     // Component will be opaque for better rendering performance
     setOpaque(true);
     
@@ -59,6 +64,18 @@ void SequencingPlaneComponent::setPlaybackPosition(float normalizedPosition)
     {
         playbackPosition = normalizedPosition;
         repaint();
+    }
+}
+
+void SequencingPlaneComponent::setColorPlaybackPosition(int colorId, float normalizedPosition)
+{
+    if (colorId >= 0 && colorId < 4)
+    {
+        if (colorPlaybackPositions[colorId] != normalizedPosition)
+        {
+            colorPlaybackPositions[colorId] = normalizedPosition;
+            repaint();
+        }
     }
 }
 
@@ -153,27 +170,38 @@ void SequencingPlaneComponent::drawPlaybackIndicator(juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat();
     
-    // Convert playback position to pixel X coordinate
-    float pixelX = bounds.getX() + playbackPosition * bounds.getWidth();
-    
-    // Draw motion blur trail behind playhead
-    float trailLength = 30.0f;
-    juce::ColourGradient trailGradient(
-        juce::Colours::white.withAlpha(0.0f),
-        pixelX - trailLength, bounds.getCentreY(),
-        juce::Colours::white.withAlpha(0.3f),
-        pixelX, bounds.getCentreY(),
-        false
-    );
-    g.setGradientFill(trailGradient);
-    g.fillRect(pixelX - trailLength, bounds.getY(), trailLength, bounds.getHeight());
-    
-    // Draw main playhead line with glow
-    g.setColour(juce::Colours::white.withAlpha(0.3f));
-    g.drawLine(pixelX - 2.0f, bounds.getY(), pixelX - 2.0f, bounds.getBottom(), 4.0f);
-    
-    g.setColour(juce::Colours::white.withAlpha(0.9f));
-    g.drawLine(pixelX, bounds.getY(), pixelX, bounds.getBottom(), 2.0f);
+    // Draw per-color playheads
+    for (int colorId = 0; colorId < 4; ++colorId)
+    {
+        float colorPos = colorPlaybackPositions[colorId];
+        const auto& colorConfig = patternModel.getColorConfig(colorId);
+        
+        // Convert playback position to pixel X coordinate
+        float pixelX = bounds.getX() + colorPos * bounds.getWidth();
+        
+        // Use color's display color with transparency
+        juce::Colour playheadColor = colorConfig.displayColor.withAlpha(0.6f);
+        juce::Colour trailColor = colorConfig.displayColor.withAlpha(0.0f);
+        
+        // Draw motion blur trail behind playhead
+        float trailLength = 20.0f;
+        juce::ColourGradient trailGradient(
+            trailColor,
+            pixelX - trailLength, bounds.getCentreY(),
+            playheadColor.withAlpha(0.2f),
+            pixelX, bounds.getCentreY(),
+            false
+        );
+        g.setGradientFill(trailGradient);
+        g.fillRect(pixelX - trailLength, bounds.getY(), trailLength, bounds.getHeight());
+        
+        // Draw main playhead line with glow
+        g.setColour(playheadColor.withAlpha(0.3f));
+        g.drawLine(pixelX - 1.5f, bounds.getY(), pixelX - 1.5f, bounds.getBottom(), 3.0f);
+        
+        g.setColour(playheadColor.withAlpha(0.9f));
+        g.drawLine(pixelX, bounds.getY(), pixelX, bounds.getBottom(), 1.5f);
+    }
 }
 
 void SequencingPlaneComponent::drawActiveSquareGlow(juce::Graphics& g)

@@ -91,8 +91,16 @@ void ColorConfigPanel::resized()
     
     bounds.removeFromTop(spacing);
     
+    // Main loop length row (always visible)
+    auto mainLoopRow = bounds.removeFromTop(rowHeight);
+    mainLoopLengthLabel.setBounds(mainLoopRow.removeFromLeft(labelWidth));
+    mainLoopRow.removeFromLeft(spacing);
+    mainLoopLengthCombo.setBounds(mainLoopRow);
+    
+    bounds.removeFromTop(spacing * 2);  // Extra spacing before clear button
+    
     // Clear button at the bottom (context-sensitive)
-    auto clearButtonBounds = bounds.removeFromTop(34);
+    auto clearButtonBounds = bounds.removeFromTop(36);
     clearButton.setBounds(clearButtonBounds);
 }
 
@@ -139,6 +147,38 @@ void ColorConfigPanel::refreshFromModel()
     
     // Update pitch sequencer length
     pitchSeqLengthCombo.setSelectedId(config.pitchSeqLoopLengthBars, juce::dontSendNotification);
+    
+    // Update main loop length
+    if (config.mainLoopLengthBars <= 0.0)
+    {
+        mainLoopLengthCombo.setSelectedId(1, juce::dontSendNotification); // Global
+    }
+    else if (config.mainLoopLengthBars < 1.0)
+    {
+        // Steps (less than 1 bar)
+        int steps = static_cast<int>(std::round(config.mainLoopLengthBars * 16.0));
+        steps = juce::jlimit(1, 15, steps);
+        mainLoopLengthCombo.setSelectedId(steps + 1, juce::dontSendNotification); // IDs 2-16
+    }
+    else if (config.mainLoopLengthBars >= 48.0)
+    {
+        mainLoopLengthCombo.setSelectedId(27, juce::dontSendNotification); // 64 bars
+    }
+    else if (config.mainLoopLengthBars >= 24.0)
+    {
+        mainLoopLengthCombo.setSelectedId(26, juce::dontSendNotification); // 32 bars
+    }
+    else if (config.mainLoopLengthBars >= 12.0)
+    {
+        mainLoopLengthCombo.setSelectedId(25, juce::dontSendNotification); // 16 bars
+    }
+    else
+    {
+        // Regular bars (1-8)
+        int bars = static_cast<int>(std::round(config.mainLoopLengthBars));
+        bars = juce::jlimit(1, 8, bars);
+        mainLoopLengthCombo.setSelectedId(16 + bars, juce::dontSendNotification); // IDs 17-24
+    }
     
     updateControlVisibility();
 }
@@ -245,8 +285,43 @@ void ColorConfigPanel::setupComponents()
     pitchSeqLengthCombo.onChange = [this]() { onPitchSeqLengthChanged(); };
     addAndMakeVisible(pitchSeqLengthCombo);
     
+    // Main loop length control (0 = use global)
+    // Options match global loop length: 1-15 steps, 1-8 bars, 16/32/64 bars
+    mainLoopLengthLabel.setText("Loop Len:", juce::dontSendNotification);
+    mainLoopLengthLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    mainLoopLengthLabel.setFont(AppFont::label());
+    addAndMakeVisible(mainLoopLengthLabel);
+    
+    int itemId = 1;
+    mainLoopLengthCombo.addItem("Global", itemId++);  // ID 1 = use global
+    
+    // Add 1-15 steps (IDs 2-16)
+    for (int i = 1; i <= 15; ++i)
+    {
+        juce::String label = (i == 1) ? "1 Step" : juce::String(i) + " Steps";
+        mainLoopLengthCombo.addItem(label, itemId++);
+    }
+    
+    // Add 1-8 bars (IDs 17-24)
+    for (int i = 1; i <= 8; ++i)
+    {
+        juce::String label = (i == 1) ? "1 Bar" : juce::String(i) + " Bars";
+        mainLoopLengthCombo.addItem(label, itemId++);
+    }
+    
+    // Add 16, 32, 64 bars (IDs 25-27)
+    mainLoopLengthCombo.addItem("16 Bars", itemId++);
+    mainLoopLengthCombo.addItem("32 Bars", itemId++);
+    mainLoopLengthCombo.addItem("64 Bars", itemId++);
+    
+    mainLoopLengthCombo.setSelectedId(1); // Default to Global
+    mainLoopLengthCombo.onChange = [this]() { onMainLoopLengthChanged(); };
+    addAndMakeVisible(mainLoopLengthCombo);
+    
     // Context-sensitive clear button
     clearButton.setButtonText("Clear");
+    clearButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff3a3a3a));
+    clearButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
     clearButton.onClick = [this]() { onClearClicked(); };
     addAndMakeVisible(clearButton);
 }
@@ -377,6 +452,43 @@ void ColorConfigPanel::onPitchSeqLengthChanged()
 {
     auto& config = patternModel.getColorConfig(currentColorChannel);
     config.pitchSeqLoopLengthBars = pitchSeqLengthCombo.getSelectedId();
+    
+    patternModel.setColorConfig(currentColorChannel, config);
+}
+
+void ColorConfigPanel::onMainLoopLengthChanged()
+{
+    auto& config = patternModel.getColorConfig(currentColorChannel);
+    int selectedId = mainLoopLengthCombo.getSelectedId();
+    
+    if (selectedId == 1)
+    {
+        // Global selected
+        config.mainLoopLengthBars = 0.0;
+    }
+    else if (selectedId >= 2 && selectedId <= 16)
+    {
+        // Steps (1-15): IDs 2-16 -> steps 1-15
+        int steps = selectedId - 1;
+        config.mainLoopLengthBars = steps / 16.0;  // 1 step = 1/16 bar
+    }
+    else if (selectedId >= 17 && selectedId <= 24)
+    {
+        // Bars (1-8): IDs 17-24 -> bars 1-8
+        config.mainLoopLengthBars = static_cast<double>(selectedId - 16);
+    }
+    else if (selectedId == 25)
+    {
+        config.mainLoopLengthBars = 16.0;
+    }
+    else if (selectedId == 26)
+    {
+        config.mainLoopLengthBars = 32.0;
+    }
+    else if (selectedId == 27)
+    {
+        config.mainLoopLengthBars = 64.0;
+    }
     
     patternModel.setColorConfig(currentColorChannel, config);
 }

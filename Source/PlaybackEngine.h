@@ -57,6 +57,12 @@ public:
     float getNormalizedPlaybackPosition() const;
     
     /**
+     * Get the current playback position for a specific color as a normalized value (0.0 to 1.0)
+     * @param colorId Color channel ID (0-3)
+     */
+    float getNormalizedPlaybackPositionForColor(int colorId) const;
+    
+    /**
      * Get the current pitch sequencer position for a specific color as a normalized value (0.0 to 1.0)
      * @param colorId Color channel ID (0-3)
      */
@@ -110,6 +116,11 @@ private:
     double currentPositionBeats;  // Current playback position in beats (wrapped to main loop)
     double absolutePositionBeats; // Absolute playback position in beats (for pitch sequencer)
     double loopLengthBeats;       // Loop length in beats
+    
+    // Per-color playback positions (for independent loop lengths)
+    double colorPositionBeats[4];  // Current position for each color
+    double colorLoopLengthBeats[4]; // Loop length for each color
+    
     bool isPlaying;               // Transport play state
     double sampleRate;            // Current sample rate
     double bpm;                   // Current tempo
@@ -142,6 +153,17 @@ private:
      * @param endBeats End of time range (in beats)
      */
     void processSquareTriggers(juce::MidiBuffer& midiMessages, double startBeats, double endBeats);
+    
+    /**
+     * Process square triggers for a specific color channel
+     * @param midiMessages MIDI buffer to add messages to
+     * @param colorId Color channel ID (0-3)
+     * @param startBeats Start of time range (in beats)
+     * @param endBeats End of time range (in beats)
+     * @param loopBeats Loop length for this color
+     */
+    void processColorTriggers(juce::MidiBuffer& midiMessages, int colorId, 
+                              double startBeats, double endBeats, double loopBeats);
     
     /**
      * Send note-off for a color channel

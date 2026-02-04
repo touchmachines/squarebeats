@@ -152,6 +152,10 @@ private:
     juce::Label pitchSeqLengthLabel;
     juce::ComboBox pitchSeqLengthCombo;
     
+    // Main loop length control (always visible)
+    juce::Label mainLoopLengthLabel;
+    juce::ComboBox mainLoopLengthCombo;
+    
     // Context-sensitive clear button
     juce::TextButton clearButton;
     
@@ -204,6 +208,11 @@ private:
      * Handle pitch sequencer length change
      */
     void onPitchSeqLengthChanged();
+    
+    /**
+     * Handle main loop length change
+     */
+    void onMainLoopLengthChanged();
     
     /**
      * Convert MIDI note number to note name (e.g., 60 -> "C4")

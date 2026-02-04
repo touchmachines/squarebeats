@@ -11,6 +11,9 @@ SquareBeatsAudioProcessor::SquareBeatsAudioProcessor()
 {
     // Initialize PlaybackEngine with PatternModel
     playbackEngine.setPatternModel(&patternModel);
+    
+    // Connect visual feedback state to playback engine
+    playbackEngine.setVisualFeedbackState(&visualFeedbackState);
 }
 
 SquareBeatsAudioProcessor::~SquareBeatsAudioProcessor()
@@ -135,6 +138,25 @@ void SquareBeatsAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
             
             if (auto ppqOpt = posInfo->getPpqPosition())
                 timeInBeats = *ppqOpt;
+            
+            // Detect beat crossings for visual pulse
+            if (isPlaying && timeInBeats >= 0.0)
+            {
+                double currentBeat = std::floor(timeInBeats);
+                if (currentBeat != lastBeatPosition && lastBeatPosition >= 0.0)
+                {
+                    // We crossed a beat boundary
+                    auto timeSignature = patternModel.getTimeSignature();
+                    double beatsPerBar = timeSignature.getBeatsPerBar();
+                    bool isDownbeat = (std::fmod(currentBeat, beatsPerBar) < 0.001);
+                    beatPulseState.triggerBeat(isDownbeat);
+                }
+                lastBeatPosition = currentBeat;
+            }
+            else if (!isPlaying)
+            {
+                lastBeatPosition = -1.0;  // Reset on stop
+            }
             
             // Update playback engine with transport info
             playbackEngine.handleTransportChange(isPlaying, sampleRate, bpm, 

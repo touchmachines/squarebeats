@@ -299,12 +299,23 @@ For detailed testing instructions, see [BUILD_AND_TEST.md](BUILD_AND_TEST.md)
 - **Clear Pitch Sequencer Button**: Reset the selected color's pitch waveform
 - **Double-Click to Delete**: Double-click any square to remove it
 
+### Visual Reactivity
+The plugin features dynamic visual feedback that makes it fun to watch and play with:
+- **Gate Flash Background**: Semi-transparent color washes flash when MIDI notes trigger, with smooth exponential decay. Multiple colors blend additively for layered visual effects.
+- **Active Square Glow**: Squares pulse with a glow effect while their notes are playing, making it easy to see what's currently sounding.
+- **Playhead Motion Trail**: The playback indicator has a gradient trail behind it, creating a sense of motion and direction.
+- **Beat Pulse Grid**: Grid lines subtly brighten on each beat, with stronger pulses on downbeats - the interface "breathes" with the music.
+- **Color Channel Activity LEDs**: Small LED indicators in the color selector show which channels are actively triggering notes.
+- **Pitch Sequencer Glow**: The pitch waveform playback position features a glowing dot that tracks the current pitch offset value.
+- **Scale Change Flash**: When the scale sequencer transitions to a new segment, a brief flash highlights the change.
+
 ### Technical Features
 - **Monophonic Voice Management**: One note per color channel at a time
 - **Cross-Platform**: Windows and macOS support
 - **VST3 Standard**: Full VST3 compliance with state serialization
 - **Normalized Coordinates**: Resolution-independent square positioning
 - **Error Handling**: Robust handling of edge cases and invalid input
+- **Thread-Safe Visual Feedback**: Lock-free communication between audio and UI threads for smooth 60fps animations
 
 ## Requirements Covered
 

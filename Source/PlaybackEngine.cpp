@@ -1,5 +1,6 @@
 #include "PlaybackEngine.h"
 #include "ConversionUtils.h"
+#include "VisualFeedback.h"
 
 namespace SquareBeats {
 
@@ -537,6 +538,11 @@ void PlaybackEngine::sendNoteOff(juce::MidiBuffer& midiMessages, int colorId, in
     juce::MidiMessage noteOff = MIDIGenerator::createNoteOff(config.midiChannel, activeNote.midiNote);
     midiMessages.addEvent(noteOff, sampleOffset);
     
+    // Trigger visual feedback for gate-off
+    if (visualFeedback != nullptr) {
+        visualFeedback->triggerGateOff(colorId);
+    }
+    
     // Remove from active notes
     activeNotesByColor.erase(it);
 }
@@ -576,6 +582,11 @@ void PlaybackEngine::sendNoteOn(juce::MidiBuffer& midiMessages, const Square& sq
     // Create and add note-on message
     juce::MidiMessage noteOn = MIDIGenerator::createNoteOn(config.midiChannel, midiNote, velocity);
     midiMessages.addEvent(noteOn, sampleOffset);
+    
+    // Trigger visual feedback for gate-on
+    if (visualFeedback != nullptr) {
+        visualFeedback->triggerGateOn(colorId, velocity);
+    }
 }
 
 //==============================================================================

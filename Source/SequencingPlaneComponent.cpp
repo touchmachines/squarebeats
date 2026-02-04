@@ -39,6 +39,9 @@ void SequencingPlaneComponent::paint(juce::Graphics& g)
     // Draw all squares
     drawSquares(g);
     
+    // Draw active square glow effects
+    drawActiveSquareGlow(g);
+    
     // Draw playback position indicator
     drawPlaybackIndicator(g);
 }
@@ -77,6 +80,9 @@ void SequencingPlaneComponent::drawGridLines(juce::Graphics& g)
     double beatsPerBar = timeSignature.getBeatsPerBar();
     double totalBeats = loopLength * beatsPerBar;
     
+    // Calculate beat pulse brightness boost
+    float pulseBoost = beatPulseIntensity * 0.3f;
+    
     // Draw vertical grid lines (time divisions)
     g.setColour(juce::Colour(0xff333333));
     
@@ -86,12 +92,16 @@ void SequencingPlaneComponent::drawGridLines(juce::Graphics& g)
         float normalizedX = bar / static_cast<float>(loopLength);
         float pixelX = bounds.getX() + normalizedX * bounds.getWidth();
         
-        g.setColour(juce::Colour(0xff555555));
+        // Bar lines pulse brighter on downbeats
+        uint8_t baseGray = 0x55;
+        uint8_t pulsedGray = static_cast<uint8_t>(juce::jmin(255.0f, baseGray + pulseBoost * 200.0f));
+        g.setColour(juce::Colour(pulsedGray, pulsedGray, pulsedGray));
         g.drawLine(pixelX, bounds.getY(), pixelX, bounds.getBottom(), 2.0f);
     }
     
-    // Draw beat lines (lighter)
-    g.setColour(juce::Colour(0xff333333));
+    // Draw beat lines (lighter, with subtle pulse)
+    uint8_t beatGray = static_cast<uint8_t>(juce::jmin(255.0f, 0x33 + pulseBoost * 100.0f));
+    g.setColour(juce::Colour(beatGray, beatGray, beatGray));
     for (int beat = 0; beat < static_cast<int>(totalBeats); ++beat)
     {
         float normalizedX = beat / static_cast<float>(totalBeats);
@@ -107,6 +117,7 @@ void SequencingPlaneComponent::drawGridLines(juce::Graphics& g)
         float normalizedY = i / 8.0f;
         float pixelY = bounds.getY() + normalizedY * bounds.getHeight();
         
+        g.setColour(juce::Colour(beatGray, beatGray, beatGray));
         g.drawLine(bounds.getX(), pixelY, bounds.getRight(), pixelY, 1.0f);
     }
 }
@@ -145,9 +156,88 @@ void SequencingPlaneComponent::drawPlaybackIndicator(juce::Graphics& g)
     // Convert playback position to pixel X coordinate
     float pixelX = bounds.getX() + playbackPosition * bounds.getWidth();
     
-    // Draw vertical line
-    g.setColour(juce::Colours::white.withAlpha(0.8f));
+    // Draw motion blur trail behind playhead
+    float trailLength = 30.0f;
+    juce::ColourGradient trailGradient(
+        juce::Colours::white.withAlpha(0.0f),
+        pixelX - trailLength, bounds.getCentreY(),
+        juce::Colours::white.withAlpha(0.3f),
+        pixelX, bounds.getCentreY(),
+        false
+    );
+    g.setGradientFill(trailGradient);
+    g.fillRect(pixelX - trailLength, bounds.getY(), trailLength, bounds.getHeight());
+    
+    // Draw main playhead line with glow
+    g.setColour(juce::Colours::white.withAlpha(0.3f));
+    g.drawLine(pixelX - 2.0f, bounds.getY(), pixelX - 2.0f, bounds.getBottom(), 4.0f);
+    
+    g.setColour(juce::Colours::white.withAlpha(0.9f));
     g.drawLine(pixelX, bounds.getY(), pixelX, bounds.getBottom(), 2.0f);
+}
+
+void SequencingPlaneComponent::drawActiveSquareGlow(juce::Graphics& g)
+{
+    if (visualFeedback == nullptr) return;
+    
+    auto squares = patternModel.getAllSquares();
+    
+    for (const auto* square : squares)
+    {
+        int colorId = square->colorChannelId;
+        
+        // Check if this color channel has an active gate
+        if (visualFeedback->isGateOn(colorId))
+        {
+            const auto& colorConfig = patternModel.getColorConfig(colorId);
+            
+            // Convert normalized coordinates to pixel coordinates
+            auto pixelRect = normalizedToPixels(
+                square->leftEdge,
+                square->topEdge,
+                square->width,
+                square->height
+            );
+            
+            // Get glow intensity (pulses while note is held)
+            float glowIntensity = visualFeedback->getActiveGlowIntensity(colorId);
+            
+            // Draw outer glow
+            float glowSize = 8.0f * glowIntensity;
+            auto glowRect = pixelRect.expanded(glowSize);
+            
+            // Create gradient for glow effect
+            juce::Colour glowColor = colorConfig.displayColor.withAlpha(0.4f * glowIntensity);
+            
+            g.setColour(glowColor);
+            g.drawRect(glowRect, 3.0f);
+            
+            // Draw inner highlight
+            g.setColour(colorConfig.displayColor.withAlpha(0.6f * glowIntensity));
+            g.drawRect(pixelRect.expanded(2.0f), 2.0f);
+        }
+        
+        // Also draw flash effect on trigger
+        float flashIntensity = visualFeedback->getFlashIntensity(square->colorChannelId);
+        if (flashIntensity > 0.01f)
+        {
+            const auto& colorConfig = patternModel.getColorConfig(square->colorChannelId);
+            
+            auto pixelRect = normalizedToPixels(
+                square->leftEdge,
+                square->topEdge,
+                square->width,
+                square->height
+            );
+            
+            // Draw ripple effect emanating from square
+            float rippleSize = 20.0f * (1.0f - flashIntensity);  // Expands as it fades
+            auto rippleRect = pixelRect.expanded(rippleSize);
+            
+            g.setColour(colorConfig.displayColor.withAlpha(0.3f * flashIntensity));
+            g.drawRect(rippleRect, 2.0f);
+        }
+    }
 }
 
 //==============================================================================

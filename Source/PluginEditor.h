@@ -13,6 +13,7 @@
 #include "PitchSequencerComponent.h"
 #include "PlayModeControls.h"
 #include "ScaleSequencerComponent.h"
+#include "GateFlashOverlay.h"
 
 //==============================================================================
 /**
@@ -60,6 +61,7 @@ private:
     SquareBeatsAudioProcessor& audioProcessor;
     
     // UI Components
+    std::unique_ptr<SquareBeats::GateFlashOverlay> gateFlashOverlay;
     std::unique_ptr<SquareBeats::SequencingPlaneComponent> sequencingPlane;
     std::unique_ptr<SquareBeats::PitchSequencerComponent> pitchSequencer;
     std::unique_ptr<SquareBeats::ColorSelectorComponent> colorSelector;

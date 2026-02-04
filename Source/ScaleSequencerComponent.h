@@ -2,6 +2,7 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "PatternModel.h"
+#include "VisualFeedback.h"
 
 namespace SquareBeats {
 
@@ -40,6 +41,11 @@ public:
     void refreshFromModel();
     
     /**
+     * Set visual feedback state for scale change flash
+     */
+    void setVisualFeedbackState(VisualFeedbackState* state) { visualFeedback = state; }
+    
+    /**
      * Listener interface for visibility changes
      */
     class Listener {
@@ -54,6 +60,9 @@ public:
 private:
     PatternModel& patternModel;
     float playbackPosition = 0.0f;
+    int lastActiveSegment = -1;  // For detecting segment changes
+    float segmentChangeFlash = 0.0f;  // Flash intensity on segment change
+    VisualFeedbackState* visualFeedback = nullptr;
     
     // Interaction state
     int hoveredSegment = -1;

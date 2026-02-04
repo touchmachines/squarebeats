@@ -5,6 +5,7 @@
 #include "PatternModel.h"
 #include "PlaybackEngine.h"
 #include "StateManager.h"
+#include "VisualFeedback.h"
 
 //==============================================================================
 /**
@@ -62,12 +63,23 @@ public:
     
     // Access to playback engine for UI (playback position indicator)
     SquareBeats::PlaybackEngine& getPlaybackEngine() { return playbackEngine; }
+    
+    // Access to visual feedback state for UI
+    SquareBeats::VisualFeedbackState& getVisualFeedbackState() { return visualFeedbackState; }
+    
+    // Access to beat pulse state for UI
+    SquareBeats::BeatPulseState& getBeatPulseState() { return beatPulseState; }
 
 private:
     //==============================================================================
     // Core components
     SquareBeats::PatternModel patternModel;
     SquareBeats::PlaybackEngine playbackEngine;
+    SquareBeats::VisualFeedbackState visualFeedbackState;
+    SquareBeats::BeatPulseState beatPulseState;
+    
+    // Beat tracking for visual pulse
+    double lastBeatPosition = -1.0;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SquareBeatsAudioProcessor)
 };

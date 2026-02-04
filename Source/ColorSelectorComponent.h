@@ -2,6 +2,7 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "PatternModel.h"
+#include "VisualFeedback.h"
 
 namespace SquareBeats {
 
@@ -56,11 +57,17 @@ public:
      * Remove a listener
      */
     void removeListener(Listener* listener);
+    
+    /**
+     * Set the visual feedback state for activity indicators
+     */
+    void setVisualFeedbackState(VisualFeedbackState* state) { visualFeedback = state; }
 
 private:
     PatternModel& patternModel;
     int selectedColorChannel;
     juce::ListenerList<Listener> listeners;
+    VisualFeedbackState* visualFeedback = nullptr;
     
     /**
      * Get the bounds for a specific color button

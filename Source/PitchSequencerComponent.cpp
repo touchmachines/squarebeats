@@ -52,11 +52,39 @@ void PitchSequencerComponent::paint(juce::Graphics& g)
     // Always draw the waveform (visible in both modes)
     drawWaveform(g);
     
-    // Always draw playback position indicator for pitch sequencer
+    // Always draw playback position indicator for pitch sequencer with glow
     auto& colorConfig = patternModel.getColorConfig(selectedColorChannel);
     float pixelX = bounds.getX() + playbackPosition * bounds.getWidth();
+    
+    // Draw glow around playback position
+    juce::ColourGradient glowGradient(
+        colorConfig.displayColor.withAlpha(0.4f),
+        pixelX, bounds.getCentreY(),
+        colorConfig.displayColor.withAlpha(0.0f),
+        pixelX + 20.0f, bounds.getCentreY(),
+        false
+    );
+    g.setGradientFill(glowGradient);
+    g.fillRect(pixelX, bounds.getY(), 20.0f, bounds.getHeight());
+    
+    // Draw the main playback line
     g.setColour(colorConfig.displayColor.withAlpha(0.9f));
     g.drawLine(pixelX, bounds.getY(), pixelX, bounds.getBottom(), 3.0f);
+    
+    // Draw a bright dot at the current waveform value
+    if (!colorConfig.pitchWaveform.empty())
+    {
+        float currentPitch = colorConfig.getPitchOffsetAt(playbackPosition);
+        float dotY = pitchOffsetToPixelY(currentPitch);
+        
+        // Outer glow
+        g.setColour(colorConfig.displayColor.withAlpha(0.5f));
+        g.fillEllipse(pixelX - 8.0f, dotY - 8.0f, 16.0f, 16.0f);
+        
+        // Inner dot
+        g.setColour(juce::Colours::white);
+        g.fillEllipse(pixelX - 4.0f, dotY - 4.0f, 8.0f, 8.0f);
+    }
 }
 
 void PitchSequencerComponent::resized()

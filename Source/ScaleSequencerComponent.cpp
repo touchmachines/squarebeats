@@ -102,8 +102,24 @@ void ScaleSequencerComponent::paint(juce::Graphics& g)
     // Draw playback position indicator
     if (playbackPosition >= 0.0f && playbackPosition <= 1.0f) {
         float posX = timelineArea.getX() + playbackPosition * timelineArea.getWidth();
+        
+        // Draw glow around playhead
+        g.setColour(juce::Colours::white.withAlpha(0.3f));
+        g.fillRect(posX - 5.0f, timelineArea.getY(), 10.0f, timelineArea.getHeight());
+        
+        // Main playhead line
         g.setColour(juce::Colours::white);
         g.drawLine(posX, timelineArea.getY(), posX, timelineArea.getBottom(), 2.0f);
+    }
+    
+    // Draw segment change flash overlay
+    if (segmentChangeFlash > 0.01f && lastActiveSegment >= 0) {
+        auto segBounds = getSegmentBounds(lastActiveSegment);
+        if (!segBounds.isEmpty()) {
+            juce::Colour flashColor = getSegmentColor(lastActiveSegment).withAlpha(segmentChangeFlash * 0.4f);
+            g.setColour(flashColor);
+            g.fillRoundedRectangle(segBounds.expanded(4.0f), 6.0f);
+        }
     }
 }
 
@@ -201,6 +217,25 @@ void ScaleSequencerComponent::setPlaybackPosition(float normalizedPosition)
 {
     if (playbackPosition != normalizedPosition) {
         playbackPosition = normalizedPosition;
+        
+        // Detect segment changes for flash effect
+        auto& config = patternModel.getScaleSequencer();
+        if (!config.segments.empty()) {
+            int currentSegment = config.getSegmentIndexAtPosition(
+                normalizedPosition * config.getTotalLengthBars()
+            );
+            
+            if (currentSegment != lastActiveSegment && lastActiveSegment >= 0) {
+                // Segment changed - trigger flash
+                segmentChangeFlash = 1.0f;
+            }
+            lastActiveSegment = currentSegment;
+        }
+        
+        // Decay flash
+        segmentChangeFlash *= 0.85f;
+        if (segmentChangeFlash < 0.01f) segmentChangeFlash = 0.0f;
+        
         repaint();
     }
 }

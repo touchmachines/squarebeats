@@ -4,6 +4,7 @@
 #include "DataStructures.h"
 #include "PatternModel.h"
 #include "MIDIGenerator.h"
+#include "VisualFeedback.h"
 #include <map>
 
 namespace SquareBeats {
@@ -76,6 +77,16 @@ public:
      */
     bool getIsPlaying() const { return isPlaying; }
     
+    /**
+     * Set the visual feedback state for UI updates
+     */
+    void setVisualFeedbackState(VisualFeedbackState* state) { visualFeedback = state; }
+    
+    /**
+     * Get the visual feedback state
+     */
+    VisualFeedbackState* getVisualFeedbackState() const { return visualFeedback; }
+    
 private:
     //==============================================================================
     /**
@@ -105,6 +116,9 @@ private:
     
     // Monophonic voice management: one active note per color channel
     std::map<int, ActiveNote> activeNotesByColor;
+    
+    // Visual feedback state (owned by processor, shared with UI)
+    VisualFeedbackState* visualFeedback = nullptr;
     
     //==============================================================================
     // Helper methods

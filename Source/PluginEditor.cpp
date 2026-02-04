@@ -5,10 +5,18 @@
 SquareBeatsAudioProcessorEditor::SquareBeatsAudioProcessorEditor (SquareBeatsAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
+    // Create the gate flash overlay (behind everything else)
+    gateFlashOverlay = std::make_unique<SquareBeats::GateFlashOverlay>(
+        audioProcessor.getPatternModel(),
+        audioProcessor.getVisualFeedbackState()
+    );
+    addAndMakeVisible(gateFlashOverlay.get());
+    
     // Create the sequencing plane component
     sequencingPlane = std::make_unique<SquareBeats::SequencingPlaneComponent>(
         audioProcessor.getPatternModel()
     );
+    sequencingPlane->setVisualFeedbackState(&audioProcessor.getVisualFeedbackState());
     addAndMakeVisible(sequencingPlane.get());
     
     // Create pitch sequencer component (as overlay on sequencing plane)
@@ -21,6 +29,7 @@ SquareBeatsAudioProcessorEditor::SquareBeatsAudioProcessorEditor (SquareBeatsAud
     colorSelector = std::make_unique<SquareBeats::ColorSelectorComponent>(
         audioProcessor.getPatternModel()
     );
+    colorSelector->setVisualFeedbackState(&audioProcessor.getVisualFeedbackState());
     colorSelector->addListener(this);
     addAndMakeVisible(colorSelector.get());
     
@@ -97,8 +106,8 @@ SquareBeatsAudioProcessorEditor::SquareBeatsAudioProcessorEditor (SquareBeatsAud
     // Listen to pattern model changes
     audioProcessor.getPatternModel().addChangeListener(this);
     
-    // Start timer for playback position updates (30 FPS)
-    startTimerHz(30);
+    // Start timer for playback position updates (60 FPS for smooth visual effects)
+    startTimerHz(60);
     
     // Set initial size and make resizable with constraints
     setSize (1000, 700);
@@ -167,6 +176,7 @@ void SquareBeatsAudioProcessorEditor::resized()
     }
     
     // Main area: Sequencing plane with pitch sequencer overlay
+    gateFlashOverlay->setBounds(bounds);  // Flash overlay behind sequencing plane
     sequencingPlane->setBounds(bounds);
     pitchSequencer->setBounds(bounds);  // Same bounds as sequencing plane (overlay)
 }
@@ -270,6 +280,31 @@ void SquareBeatsAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadca
 
 void SquareBeatsAudioProcessorEditor::timerCallback()
 {
+    // Update visual feedback time (milliseconds since start)
+    static auto startTime = juce::Time::getMillisecondCounterHiRes();
+    float currentTimeMs = static_cast<float>(juce::Time::getMillisecondCounterHiRes() - startTime);
+    audioProcessor.getVisualFeedbackState().updateTime(currentTimeMs);
+    audioProcessor.getBeatPulseState().updateTime(currentTimeMs);
+    
+    // Repaint the gate flash overlay for smooth animation
+    if (gateFlashOverlay != nullptr)
+    {
+        gateFlashOverlay->repaint();
+    }
+    
+    // Update beat pulse intensity and repaint sequencing plane
+    if (sequencingPlane != nullptr)
+    {
+        float beatPulse = audioProcessor.getBeatPulseState().getPulseIntensity();
+        sequencingPlane->setBeatPulseIntensity(beatPulse);
+    }
+    
+    // Repaint color selector for activity indicators
+    if (colorSelector != nullptr)
+    {
+        colorSelector->repaint();
+    }
+    
     // Update playback position from the audio processor
     if (sequencingPlane != nullptr)
     {

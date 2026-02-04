@@ -31,6 +31,33 @@ void ColorSelectorComponent::paint(juce::Graphics& g)
         g.setColour(colorConfig.displayColor);
         g.fillRect(buttonBounds.reduced(2));
         
+        // Draw activity indicator (LED-style glow when gate is on)
+        if (visualFeedback != nullptr)
+        {
+            float flashIntensity = visualFeedback->getFlashIntensity(i);
+            bool gateOn = visualFeedback->isGateOn(i);
+            
+            if (gateOn || flashIntensity > 0.01f)
+            {
+                // Draw glowing LED indicator in corner
+                float intensity = gateOn ? 1.0f : flashIntensity;
+                int ledSize = 8;
+                auto ledBounds = juce::Rectangle<int>(
+                    buttonBounds.getRight() - ledSize - 4,
+                    buttonBounds.getY() + 4,
+                    ledSize, ledSize
+                );
+                
+                // Outer glow
+                g.setColour(juce::Colours::white.withAlpha(0.5f * intensity));
+                g.fillEllipse(ledBounds.toFloat().expanded(2.0f));
+                
+                // Inner LED
+                g.setColour(juce::Colours::white.withAlpha(0.9f * intensity));
+                g.fillEllipse(ledBounds.toFloat());
+            }
+        }
+        
         // Draw highlight border if selected
         if (i == selectedColorChannel)
         {

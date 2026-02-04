@@ -2,6 +2,7 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "PatternModel.h"
+#include "VisualFeedback.h"
 
 namespace SquareBeats {
 
@@ -62,6 +63,16 @@ public:
      * Get the currently selected color channel
      */
     int getSelectedColorChannel() const { return selectedColorChannel; }
+    
+    /**
+     * Set the visual feedback state for active square glow effects
+     */
+    void setVisualFeedbackState(VisualFeedbackState* state) { visualFeedback = state; }
+    
+    /**
+     * Set the beat pulse intensity for grid breathing effect
+     */
+    void setBeatPulseIntensity(float intensity) { beatPulseIntensity = juce::jlimit(0.0f, 1.0f, intensity); }
 
 protected:
     //==============================================================================
@@ -81,6 +92,11 @@ protected:
      * Draw the playback position indicator
      */
     void drawPlaybackIndicator(juce::Graphics& g);
+    
+    /**
+     * Draw glow effect around active (playing) squares
+     */
+    void drawActiveSquareGlow(juce::Graphics& g);
     
     /**
      * Convert normalized coordinates to pixel coordinates
@@ -128,6 +144,12 @@ private:
     Square* selectedSquare;
     juce::Point<float> editStartMousePos;
     float editStartLeft, editStartTop, editStartWidth, editStartHeight;
+    
+    // Visual feedback state (optional, for active square glow)
+    VisualFeedbackState* visualFeedback = nullptr;
+    
+    // Beat pulse intensity (0.0 to 1.0, set from timer)
+    float beatPulseIntensity = 0.0f;
     
     /**
      * Hit test to find a square at the given normalized coordinates

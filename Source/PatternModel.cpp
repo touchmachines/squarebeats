@@ -297,38 +297,38 @@ void PatternModel::initializeDefaultColorConfigs()
     // Default waveform resolution
     const int waveformResolution = 256;
     
-    // Initialize 4 color channels with sensible defaults
+    // Initialize 4 color channels with color-blind friendly metallic colors
     
-    // Channel 0: Red
+    // Channel 0: Copper/Rose Gold - warm metallic
     colorConfigs[0].midiChannel = 1;
     colorConfigs[0].highNote = 84;  // C6
     colorConfigs[0].lowNote = 48;   // C3
     colorConfigs[0].quantize = Q_1_16;
-    colorConfigs[0].displayColor = juce::Colour(0xFFFF4444);  // Red
+    colorConfigs[0].displayColor = juce::Colour(0xFFE8A87C);  // Copper/Rose Gold
     colorConfigs[0].pitchWaveform.resize(waveformResolution, 0.0f);
     
-    // Channel 1: Green
+    // Channel 1: Steel Blue - cool metallic, high contrast with copper
     colorConfigs[1].midiChannel = 2;
     colorConfigs[1].highNote = 84;  // C6
     colorConfigs[1].lowNote = 48;   // C3
     colorConfigs[1].quantize = Q_1_16;
-    colorConfigs[1].displayColor = juce::Colour(0xFF44FF44);  // Green
+    colorConfigs[1].displayColor = juce::Colour(0xFF85C1E9);  // Steel Blue
     colorConfigs[1].pitchWaveform.resize(waveformResolution, 0.0f);
     
-    // Channel 2: Blue
+    // Channel 2: Deep Purple/Violet - distinct from blue, good saturation
     colorConfigs[2].midiChannel = 3;
     colorConfigs[2].highNote = 84;  // C6
     colorConfigs[2].lowNote = 48;   // C3
     colorConfigs[2].quantize = Q_1_16;
-    colorConfigs[2].displayColor = juce::Colour(0xFF4444FF);  // Blue
+    colorConfigs[2].displayColor = juce::Colour(0xFFAF7AC5);  // Deep Purple
     colorConfigs[2].pitchWaveform.resize(waveformResolution, 0.0f);
     
-    // Channel 3: Yellow
+    // Channel 3: Bright Cyan/Teal - high brightness, distinct from purple
     colorConfigs[3].midiChannel = 4;
     colorConfigs[3].highNote = 84;  // C6
     colorConfigs[3].lowNote = 48;   // C3
     colorConfigs[3].quantize = Q_1_16;
-    colorConfigs[3].displayColor = juce::Colour(0xFFFFFF44);  // Yellow
+    colorConfigs[3].displayColor = juce::Colour(0xFF48C9B0);  // Bright Teal
     colorConfigs[3].pitchWaveform.resize(waveformResolution, 0.0f);
 }
 

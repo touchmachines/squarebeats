@@ -497,16 +497,18 @@ void ScaleSequencerComponent::onSegmentChanged(int index)
 
 juce::Colour ScaleSequencerComponent::getSegmentColor(int index) const
 {
-    // Cycle through a set of distinct colors
+    // Muted earth tones / desaturated colors that won't conflict with main channel colors
+    // Main channels use: Copper, Steel Blue, Purple, Teal
+    // Scale sequencer uses: Browns, grays, muted warm/cool tones
     static const juce::Colour colors[] = {
-        juce::Colour(0xff3a6ea5),  // Blue
-        juce::Colour(0xff6a4c93),  // Purple
-        juce::Colour(0xff1982c4),  // Light blue
-        juce::Colour(0xff8ac926),  // Green
-        juce::Colour(0xffff595e),  // Red
-        juce::Colour(0xffffca3a),  // Yellow
-        juce::Colour(0xffff924c),  // Orange
-        juce::Colour(0xff6a994e),  // Dark green
+        juce::Colour(0xff8B7355),  // Muted brown/taupe
+        juce::Colour(0xff6B7B8C),  // Slate gray
+        juce::Colour(0xff9C8B7A),  // Warm gray/beige
+        juce::Colour(0xff5D6D7E),  // Cool gray-blue
+        juce::Colour(0xffA68B6A),  // Tan/khaki
+        juce::Colour(0xff7B8A8B),  // Neutral gray
+        juce::Colour(0xff8E7B6B),  // Dusty rose-brown
+        juce::Colour(0xff6A7B6A),  // Muted sage (desaturated, won't confuse with teal)
     };
     
     return colors[index % 8];

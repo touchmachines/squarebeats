@@ -302,6 +302,7 @@ For detailed testing instructions, see [BUILD_AND_TEST.md](BUILD_AND_TEST.md)
 ### Visual Reactivity
 The plugin features dynamic visual feedback that makes it fun to watch and play with:
 - **Gate Flash Background**: Semi-transparent color washes flash when MIDI notes trigger, with smooth exponential decay. Multiple colors blend additively for layered visual effects.
+- **Velocity Ripples**: When notes trigger, expanding ripple rings emanate from the square. Ripple size and intensity scale with velocity - harder hits create bigger, more visible ripples.
 - **Active Square Glow**: Squares pulse with a glow effect while their notes are playing, making it easy to see what's currently sounding.
 - **Playhead Motion Trail**: The playback indicator has a gradient trail behind it, creating a sense of motion and direction.
 - **Beat Pulse Grid**: Grid lines subtly brighten on each beat, with stronger pulses on downbeats - the interface "breathes" with the music.

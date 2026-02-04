@@ -217,11 +217,12 @@ void SequencingPlaneComponent::drawActiveSquareGlow(juce::Graphics& g)
             g.drawRect(pixelRect.expanded(2.0f), 2.0f);
         }
         
-        // Also draw flash effect on trigger
+        // Also draw velocity-based ripple effect on trigger
         float flashIntensity = visualFeedback->getFlashIntensity(square->colorChannelId);
         if (flashIntensity > 0.01f)
         {
             const auto& colorConfig = patternModel.getColorConfig(square->colorChannelId);
+            int velocity = visualFeedback->getVelocity(square->colorChannelId);
             
             auto pixelRect = normalizedToPixels(
                 square->leftEdge,
@@ -230,12 +231,29 @@ void SequencingPlaneComponent::drawActiveSquareGlow(juce::Graphics& g)
                 square->height
             );
             
-            // Draw ripple effect emanating from square
-            float rippleSize = 20.0f * (1.0f - flashIntensity);  // Expands as it fades
-            auto rippleRect = pixelRect.expanded(rippleSize);
+            // Velocity affects ripple size and intensity
+            float velocityScale = velocity / 127.0f;
+            float maxRippleSize = 30.0f + 40.0f * velocityScale;  // 30-70px based on velocity
             
-            g.setColour(colorConfig.displayColor.withAlpha(0.3f * flashIntensity));
-            g.drawRect(rippleRect, 2.0f);
+            // Draw multiple expanding ripple rings
+            for (int ring = 0; ring < 3; ++ring)
+            {
+                // Stagger the rings with different phases
+                float ringPhase = (1.0f - flashIntensity) + ring * 0.15f;
+                if (ringPhase > 1.0f) continue;
+                
+                float rippleSize = maxRippleSize * ringPhase;
+                float ringAlpha = (1.0f - ringPhase) * (0.4f - ring * 0.1f) * velocityScale;
+                
+                if (ringAlpha > 0.01f)
+                {
+                    auto rippleRect = pixelRect.expanded(rippleSize);
+                    
+                    // Draw rounded ripple for softer look
+                    g.setColour(colorConfig.displayColor.withAlpha(ringAlpha));
+                    g.drawRoundedRectangle(rippleRect, 4.0f, 2.0f - ring * 0.5f);
+                }
+            }
         }
     }
 }

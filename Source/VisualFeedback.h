@@ -69,6 +69,17 @@ public:
         }
     }
     
+    /**
+     * Clear all gate states (call when transport stops)
+     */
+    void clearAllGates() {
+        for (int i = 0; i < NUM_COLORS; ++i) {
+            gateEvents[i].gateOn.store(false, std::memory_order_release);
+            // Set trigger time far in the past to stop any ongoing flashes
+            gateEvents[i].triggerTime.store(-10000.0f, std::memory_order_release);
+        }
+    }
+    
     //==============================================================================
     // Called from UI thread
     

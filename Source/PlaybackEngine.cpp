@@ -62,6 +62,11 @@ void PlaybackEngine::handleTransportChange(bool playing, double sr, double tempo
         stopAllNotes(tempBuffer);
         activeNotesByColor.clear();
         
+        // Clear all visual feedback states
+        if (visualFeedback != nullptr) {
+            visualFeedback->clearAllGates();
+        }
+        
         // Reset step position and pendulum direction
         currentStepIndex = 0;
         pendulumForward = true;

@@ -590,7 +590,7 @@ void PlaybackEngine::sendNoteOn(juce::MidiBuffer& midiMessages, const Square& sq
     
     // Trigger visual feedback for gate-on
     if (visualFeedback != nullptr) {
-        visualFeedback->triggerGateOn(colorId, velocity);
+        visualFeedback->triggerGateOn(colorId, velocity, square.uniqueId);
     }
 }
 

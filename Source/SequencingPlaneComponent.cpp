@@ -185,9 +185,10 @@ void SequencingPlaneComponent::drawActiveSquareGlow(juce::Graphics& g)
     for (const auto* square : squares)
     {
         int colorId = square->colorChannelId;
+        int activeSquareId = visualFeedback->getActiveSquareId(colorId);
         
-        // Check if this color channel has an active gate
-        if (visualFeedback->isGateOn(colorId))
+        // Only apply glow to the specific square that's currently playing
+        if (visualFeedback->isGateOn(colorId) && square->uniqueId == activeSquareId)
         {
             const auto& colorConfig = patternModel.getColorConfig(colorId);
             
@@ -217,9 +218,11 @@ void SequencingPlaneComponent::drawActiveSquareGlow(juce::Graphics& g)
             g.drawRect(pixelRect.expanded(2.0f), 2.0f);
         }
         
-        // Also draw velocity-based ripple effect on trigger
+        // Also draw velocity-based ripple effect on trigger - only for the active square
         float flashIntensity = visualFeedback->getFlashIntensity(square->colorChannelId);
-        if (flashIntensity > 0.01f)
+        int activeSquareIdForFlash = visualFeedback->getActiveSquareId(square->colorChannelId);
+        
+        if (flashIntensity > 0.01f && square->uniqueId == activeSquareIdForFlash)
         {
             const auto& colorConfig = patternModel.getColorConfig(square->colorChannelId);
             int velocity = visualFeedback->getVelocity(square->colorChannelId);

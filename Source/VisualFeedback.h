@@ -18,6 +18,7 @@ struct GateEvent {
     std::atomic<bool> gateOn{false};      // True when note is currently playing
     std::atomic<float> triggerTime{0.0f}; // Time when last triggered (for flash decay)
     std::atomic<int> velocity{0};         // Velocity of the triggered note (0-127)
+    std::atomic<int> activeSquareId{-1};  // UniqueId of the currently playing square (-1 = none)
     
     GateEvent() = default;
     
@@ -51,12 +52,16 @@ public:
     
     /**
      * Signal that a gate-on event occurred for a color channel
+     * @param colorId Color channel ID (0-3)
+     * @param vel Velocity of the note (0-127)
+     * @param squareId UniqueId of the square being triggered (-1 for unknown)
      */
-    void triggerGateOn(int colorId, int vel) {
+    void triggerGateOn(int colorId, int vel, int squareId = -1) {
         if (colorId >= 0 && colorId < NUM_COLORS) {
             gateEvents[colorId].gateOn.store(true, std::memory_order_release);
             gateEvents[colorId].triggerTime.store(currentTimeMs.load(std::memory_order_acquire), std::memory_order_release);
             gateEvents[colorId].velocity.store(vel, std::memory_order_release);
+            gateEvents[colorId].activeSquareId.store(squareId, std::memory_order_release);
         }
     }
     
@@ -66,6 +71,7 @@ public:
     void triggerGateOff(int colorId) {
         if (colorId >= 0 && colorId < NUM_COLORS) {
             gateEvents[colorId].gateOn.store(false, std::memory_order_release);
+            gateEvents[colorId].activeSquareId.store(-1, std::memory_order_release);
         }
     }
     
@@ -77,6 +83,7 @@ public:
             gateEvents[i].gateOn.store(false, std::memory_order_release);
             // Set trigger time far in the past to stop any ongoing flashes
             gateEvents[i].triggerTime.store(-10000.0f, std::memory_order_release);
+            gateEvents[i].activeSquareId.store(-1, std::memory_order_release);
         }
     }
     
@@ -122,6 +129,15 @@ public:
     int getVelocity(int colorId) const {
         if (colorId < 0 || colorId >= NUM_COLORS) return 0;
         return gateEvents[colorId].velocity.load(std::memory_order_acquire);
+    }
+    
+    /**
+     * Get the uniqueId of the currently active (playing) square for a color channel
+     * @return Square uniqueId, or -1 if no square is active
+     */
+    int getActiveSquareId(int colorId) const {
+        if (colorId < 0 || colorId >= NUM_COLORS) return -1;
+        return gateEvents[colorId].activeSquareId.load(std::memory_order_acquire);
     }
     
     /**

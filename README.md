@@ -247,12 +247,13 @@ cp -r "build/SquareBeats_artefacts/Release/VST3/SquareBeats.vst3" "~/Library/Aud
 4. **Draw Squares**: Click and drag on the sequencing plane to create notes
 5. **Delete Squares**: Double-click any square to remove it
 6. **Configure Colors**: Select different colors for different MIDI channels
-7. **Pitch Sequencer**: Click "Edit Pitch Sequence" to switch to pitch editing mode and draw pitch modulation curves per color (pitch modulation is always active)
-8. **Pitch Seq Length**: Use the "Pitch Len:" dropdown to set each color's pitch sequencer loop length (1-64 bars)
-9. **Scale Selection**: Choose root note and scale type to constrain notes to a musical scale
-10. **Scale Sequencer**: Click "Scale Seq" to enable the scale sequencer. When enabled, the Root/Scale dropdowns become disabled and display the currently playing scale in real-time. Add segments with "+", click segments to edit key/scale/duration, drag edges to resize. Click "Scale Seq" again to disable and return to manual scale control.
-11. **Play Modes**: Select playback direction from the top bar (Forward, Backward, Pendulum, or Probability). In Probability mode, an XY pad appears in the side panel to set step jump size (X) and probability (Y).
-12. **Start Playback**: Press play in your DAW to hear your pattern
+7. **Switch Modes**: Use the SQUARES/PITCH tabs in the side panel to switch between square editing and pitch sequencer editing
+8. **Pitch Sequencer**: Click the "PITCH" tab to switch to pitch editing mode and draw pitch modulation curves per color (pitch modulation is always active)
+9. **Pitch Seq Length**: Use the "Pitch Len:" dropdown to set each color's pitch sequencer loop length (1-64 bars)
+10. **Scale Selection**: Choose root note and scale type to constrain notes to a musical scale
+11. **Scale Sequencer**: Click "Scale Seq" to enable the scale sequencer. When enabled, the Root/Scale dropdowns become disabled and display the currently playing scale in real-time. Add segments with "+", click segments to edit key/scale/duration, drag edges to resize. Click "Scale Seq" again to disable and return to manual scale control.
+12. **Play Modes**: Select playback direction from the top bar (Forward, Backward, Pendulum, or Probability). In Probability mode, an XY pad appears in the side panel to set step jump size (X) and probability (Y).
+13. **Start Playback**: Press play in your DAW to hear your pattern
 
 For detailed testing instructions, see [BUILD_AND_TEST.md](BUILD_AND_TEST.md)
 
@@ -287,24 +288,25 @@ For detailed testing instructions, see [BUILD_AND_TEST.md](BUILD_AND_TEST.md)
 ### User Interface
 - **Resizable Window**: 800x600 minimum, 2000x1500 maximum
 - **Real-time Playback Indicators**: Visual feedback for main sequencer, pitch sequencer, and scale sequencer positions
-- **Color Configuration Panel**: Per-color settings for quantization, pitch range, and MIDI channel (context-sensitive header changes based on editing mode)
+- **Tab-Based Color Configuration Panel**: 
+  - **SQUARES tab**: Per-color settings for quantization, pitch range, and MIDI channel
+  - **PITCH tab**: Switch to pitch sequencer editing mode
+  - **Context-Sensitive Clear Button**: Clears squares in SQUARES mode, resets pitch waveform in PITCH mode
+  - **Pitch Sequencer Length**: Per-color dropdown for 1-64 bar pitch sequencer loops (always visible)
 - **Loop Length Selector**: Dropdown for selecting loop length from 1-64 bars
 - **Scale Controls**: Root note and scale type selection (Chromatic, Major, Minor, Harmonic Minor, Melodic Minor, Pentatonic Major/Minor, Blues, Dorian, Phrygian, Lydian, Mixolydian, Locrian, Whole Tone, Diminished). When scale sequencer is enabled, these controls are disabled and display the currently playing scale.
 - **Scale Sequencer Panel**: Timeline editor for chaining key/scale changes. Click segments to edit, drag edges to resize, click "+" to add new segments. Toggle with "Scale Seq" button.
 - **Play Mode Buttons**: Located in top bar for easy access - Forward, Backward, Pendulum, or Probability modes
 - **Probability XY Pad**: Appears in side panel only when Probability mode is selected, for controlling step jump size and probability
-- **Pitch Sequencer Length**: Per-color dropdown for 1-64 bar pitch sequencer loops
 - **Time Signature Controls**: Easy time signature configuration
 - **Clear All Button**: Remove all squares and pitch waveforms from all colors (top bar)
-- **Clear Color Button**: Remove all squares of selected color (side panel)
-- **Clear Pitch Sequencer Button**: Reset the selected color's pitch waveform
 - **Double-Click to Delete**: Double-click any square to remove it
 
 ### Visual Reactivity
 The plugin features dynamic visual feedback that makes it fun to watch and play with:
 - **Gate Flash Background**: Semi-transparent color washes flash when MIDI notes trigger, with smooth exponential decay. Multiple colors blend additively for layered visual effects.
-- **Velocity Ripples**: When notes trigger, expanding ripple rings emanate from the square. Ripple size and intensity scale with velocity - harder hits create bigger, more visible ripples.
-- **Active Square Glow**: Squares pulse with a glow effect while their notes are playing, making it easy to see what's currently sounding.
+- **Velocity Ripples**: When a note triggers, expanding ripple rings emanate from the specific square being played. Ripple size and intensity scale with velocity - harder hits create bigger, more visible ripples.
+- **Active Square Glow**: Only the currently playing square pulses with a glow effect while its note is sounding, making it easy to track which exact square is active.
 - **Playhead Motion Trail**: The playback indicator has a gradient trail behind it, creating a sense of motion and direction.
 - **Beat Pulse Grid**: Grid lines subtly brighten on each beat, with stronger pulses on downbeats - the interface "breathes" with the music.
 - **Color Channel Activity LEDs**: Small LED indicators in the color selector show which channels are actively triggering notes.

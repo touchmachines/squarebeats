@@ -41,6 +41,13 @@ SquareBeatsAudioProcessorEditor::SquareBeatsAudioProcessorEditor (SquareBeatsAud
     colorConfigPanel = std::make_unique<SquareBeats::ColorConfigPanel>(
         audioProcessor.getPatternModel()
     );
+    // Connect the editing mode change callback to update pitch sequencer visibility
+    colorConfigPanel->onEditingModeChanged = [this](bool isPitchMode) {
+        if (pitchSequencer != nullptr)
+        {
+            pitchSequencer->updateVisibility();
+        }
+    };
     addAndMakeVisible(colorConfigPanel.get());
     
     // Create loop length selector (now a dropdown)
@@ -203,10 +210,10 @@ void SquareBeatsAudioProcessorEditor::resized()
     rightPanel.removeFromTop(10); // Spacing
     
     // Context-sensitive: Show either color config (square mode) or pitch config (pitch mode)
-    colorConfigPanel->setBounds(rightPanel.removeFromTop(200));
+    colorConfigPanel->setBounds(rightPanel.removeFromTop(270));
     
     rightPanel.removeFromTop(10); // Spacing
-    controlButtons->setBounds(rightPanel.removeFromTop(170));
+    controlButtons->setBounds(rightPanel.removeFromTop(0));  // ControlButtons is now empty
     
     // Show XY pad only in probability mode
     auto& playModeConfig = audioProcessor.getPatternModel().getPlayModeConfig();

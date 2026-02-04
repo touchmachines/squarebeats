@@ -27,19 +27,21 @@ void ColorConfigPanel::paint(juce::Graphics& g)
 
 void ColorConfigPanel::resized()
 {
-    auto bounds = getLocalBounds().reduced(10);
+    auto bounds = getLocalBounds().reduced(8);
     int rowHeight = 30;
-    int labelWidth = 100;
+    int labelWidth = 80;
     int spacing = 5;
+    int tabHeight = 32;
     
-    // Section header
-    auto& pitchSeq = patternModel.getPitchSequencer();
-    sectionHeader.setText(pitchSeq.editingPitch ? "PITCH SEQUENCER" : "NOTE SETTINGS", 
-                          juce::dontSendNotification);
-    sectionHeader.setBounds(bounds.removeFromTop(24));
+    // Tab buttons at the top
+    auto tabArea = bounds.removeFromTop(tabHeight);
+    int tabWidth = tabArea.getWidth() / 2;
+    notesTabButton.setBounds(tabArea.removeFromLeft(tabWidth));
+    pitchTabButton.setBounds(tabArea);
+    
     bounds.removeFromTop(spacing);
     
-    // Quantization row (always visible)
+    // Quantization row
     auto quantRow = bounds.removeFromTop(rowHeight);
     quantizationLabel.setBounds(quantRow.removeFromLeft(labelWidth));
     quantRow.removeFromLeft(spacing);
@@ -51,7 +53,7 @@ void ColorConfigPanel::resized()
     auto highNoteRow = bounds.removeFromTop(rowHeight);
     highNoteLabel.setBounds(highNoteRow.removeFromLeft(labelWidth));
     highNoteRow.removeFromLeft(spacing);
-    auto highNoteValueBounds = highNoteRow.removeFromRight(60);
+    auto highNoteValueBounds = highNoteRow.removeFromRight(40);
     highNoteRow.removeFromRight(spacing);
     highNoteSlider.setBounds(highNoteRow);
     highNoteValue.setBounds(highNoteValueBounds);
@@ -62,7 +64,7 @@ void ColorConfigPanel::resized()
     auto lowNoteRow = bounds.removeFromTop(rowHeight);
     lowNoteLabel.setBounds(lowNoteRow.removeFromLeft(labelWidth));
     lowNoteRow.removeFromLeft(spacing);
-    auto lowNoteValueBounds = lowNoteRow.removeFromRight(60);
+    auto lowNoteValueBounds = lowNoteRow.removeFromRight(40);
     lowNoteRow.removeFromRight(spacing);
     lowNoteSlider.setBounds(lowNoteRow);
     lowNoteValue.setBounds(lowNoteValueBounds);
@@ -74,6 +76,20 @@ void ColorConfigPanel::resized()
     midiChannelLabel.setBounds(midiRow.removeFromLeft(labelWidth));
     midiRow.removeFromLeft(spacing);
     midiChannelCombo.setBounds(midiRow);
+    
+    bounds.removeFromTop(spacing);
+    
+    // Pitch sequencer length row (always visible)
+    auto pitchLenRow = bounds.removeFromTop(rowHeight);
+    pitchSeqLengthLabel.setBounds(pitchLenRow.removeFromLeft(labelWidth));
+    pitchLenRow.removeFromLeft(spacing);
+    pitchSeqLengthCombo.setBounds(pitchLenRow);
+    
+    bounds.removeFromTop(spacing);
+    
+    // Clear button at the bottom (context-sensitive)
+    auto clearButtonBounds = bounds.removeFromTop(34);
+    clearButton.setBounds(clearButtonBounds);
 }
 
 //==============================================================================
@@ -91,21 +107,9 @@ void ColorConfigPanel::refreshFromModel()
     const auto& config = patternModel.getColorConfig(currentColorChannel);
     auto& pitchSeq = patternModel.getPitchSequencer();
     
-    // Update section header based on mode
-    sectionHeader.setText(pitchSeq.editingPitch ? "PITCH SEQUENCER" : "NOTE SETTINGS", 
-                          juce::dontSendNotification);
-    
-    // Update labels based on mode
-    if (pitchSeq.editingPitch)
-    {
-        highNoteLabel.setText("High Pitch:", juce::dontSendNotification);
-        lowNoteLabel.setText("Low Pitch:", juce::dontSendNotification);
-    }
-    else
-    {
-        highNoteLabel.setText("High Note:", juce::dontSendNotification);
-        lowNoteLabel.setText("Low Note:", juce::dontSendNotification);
-    }
+    // Update tab button states
+    notesTabButton.setToggleState(!pitchSeq.editingPitch, juce::dontSendNotification);
+    pitchTabButton.setToggleState(pitchSeq.editingPitch, juce::dontSendNotification);
     
     // Update quantization combo
     switch (config.quantize)
@@ -129,22 +133,33 @@ void ColorConfigPanel::refreshFromModel()
     // Update MIDI channel combo
     midiChannelCombo.setSelectedId(config.midiChannel, juce::dontSendNotification);
     
+    // Update pitch sequencer length
+    pitchSeqLengthCombo.setSelectedId(config.pitchSeqLoopLengthBars, juce::dontSendNotification);
+    
     updateControlVisibility();
 }
 
 //==============================================================================
 void ColorConfigPanel::setupComponents()
 {
-    // Section header
-    sectionHeader.setText("NOTE SETTINGS", juce::dontSendNotification);
-    sectionHeader.setColour(juce::Label::textColourId, juce::Colours::white);
-    sectionHeader.setFont(juce::Font(14.0f, juce::Font::bold));
-    sectionHeader.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(sectionHeader);
+    // Tab buttons
+    notesTabButton.setButtonText("SQUARES");
+    notesTabButton.setClickingTogglesState(true);
+    notesTabButton.setRadioGroupId(1001);
+    notesTabButton.onClick = [this]() { switchToNotesTab(); };
+    notesTabButton.setToggleState(true, juce::dontSendNotification);
+    addAndMakeVisible(notesTabButton);
+    
+    pitchTabButton.setButtonText("PITCH");
+    pitchTabButton.setClickingTogglesState(true);
+    pitchTabButton.setRadioGroupId(1001);
+    pitchTabButton.onClick = [this]() { switchToPitchTab(); };
+    addAndMakeVisible(pitchTabButton);
     
     // Quantization label and combo
     quantizationLabel.setText("Quantization:", juce::dontSendNotification);
     quantizationLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    quantizationLabel.setFont(juce::Font(13.0f));
     addAndMakeVisible(quantizationLabel);
     
     quantizationCombo.addItem("1/32", 1);
@@ -160,6 +175,7 @@ void ColorConfigPanel::setupComponents()
     // High note label, slider, and value
     highNoteLabel.setText("High Note:", juce::dontSendNotification);
     highNoteLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    highNoteLabel.setFont(juce::Font(13.0f));
     addAndMakeVisible(highNoteLabel);
     
     highNoteSlider.setRange(0, 127, 1);
@@ -172,11 +188,13 @@ void ColorConfigPanel::setupComponents()
     highNoteValue.setText("C6", juce::dontSendNotification);
     highNoteValue.setColour(juce::Label::textColourId, juce::Colours::white);
     highNoteValue.setJustificationType(juce::Justification::centred);
+    highNoteValue.setFont(juce::Font(13.0f));
     addAndMakeVisible(highNoteValue);
     
     // Low note label, slider, and value
     lowNoteLabel.setText("Low Note:", juce::dontSendNotification);
     lowNoteLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    lowNoteLabel.setFont(juce::Font(13.0f));
     addAndMakeVisible(lowNoteLabel);
     
     lowNoteSlider.setRange(0, 127, 1);
@@ -189,11 +207,13 @@ void ColorConfigPanel::setupComponents()
     lowNoteValue.setText("C3", juce::dontSendNotification);
     lowNoteValue.setColour(juce::Label::textColourId, juce::Colours::white);
     lowNoteValue.setJustificationType(juce::Justification::centred);
+    lowNoteValue.setFont(juce::Font(13.0f));
     addAndMakeVisible(lowNoteValue);
     
     // MIDI channel label and combo
     midiChannelLabel.setText("MIDI Channel:", juce::dontSendNotification);
     midiChannelLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    midiChannelLabel.setFont(juce::Font(13.0f));
     addAndMakeVisible(midiChannelLabel);
     
     for (int i = 1; i <= 16; ++i)
@@ -203,13 +223,99 @@ void ColorConfigPanel::setupComponents()
     midiChannelCombo.setSelectedId(1); // Default to channel 1
     midiChannelCombo.onChange = [this]() { onMidiChannelChanged(); };
     addAndMakeVisible(midiChannelCombo);
+    
+    // Pitch sequencer length
+    pitchSeqLengthLabel.setText("Pitch Len:", juce::dontSendNotification);
+    pitchSeqLengthLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    pitchSeqLengthLabel.setFont(juce::Font(13.0f));
+    addAndMakeVisible(pitchSeqLengthLabel);
+    
+    for (int i = 1; i <= 64; ++i)
+    {
+        juce::String label = juce::String(i) + (i == 1 ? " Bar" : " Bars");
+        pitchSeqLengthCombo.addItem(label, i);
+    }
+    pitchSeqLengthCombo.setSelectedId(16); // Default to 16 bars
+    pitchSeqLengthCombo.onChange = [this]() { onPitchSeqLengthChanged(); };
+    addAndMakeVisible(pitchSeqLengthCombo);
+    
+    // Context-sensitive clear button
+    clearButton.setButtonText("Clear");
+    clearButton.onClick = [this]() { onClearClicked(); };
+    addAndMakeVisible(clearButton);
 }
 
 //==============================================================================
 void ColorConfigPanel::updateControlVisibility()
 {
-    // All controls are always visible, but labels change based on mode
-    // This keeps the UI consistent and avoids jarring layout changes
+    auto& pitchSeq = patternModel.getPitchSequencer();
+    bool isPitchMode = pitchSeq.editingPitch;
+    
+    // Update clear button text based on mode
+    if (isPitchMode)
+    {
+        clearButton.setButtonText("Clear Pitch Sequencer");
+    }
+    else
+    {
+        clearButton.setButtonText("Clear All (Current Color)");
+    }
+    
+    // Note controls are always visible but labels change meaning in pitch mode
+    if (isPitchMode)
+    {
+        highNoteLabel.setText("High Pitch:", juce::dontSendNotification);
+        lowNoteLabel.setText("Low Pitch:", juce::dontSendNotification);
+    }
+    else
+    {
+        highNoteLabel.setText("High Note:", juce::dontSendNotification);
+        lowNoteLabel.setText("Low Note:", juce::dontSendNotification);
+    }
+}
+
+void ColorConfigPanel::switchToNotesTab()
+{
+    auto& pitchSeq = patternModel.getPitchSequencer();
+    pitchSeq.editingPitch = false;
+    updateControlVisibility();
+    
+    // Notify listener about mode change
+    if (onEditingModeChanged)
+        onEditingModeChanged(false);
+    
+    patternModel.sendChangeMessage();
+}
+
+void ColorConfigPanel::switchToPitchTab()
+{
+    auto& pitchSeq = patternModel.getPitchSequencer();
+    pitchSeq.editingPitch = true;
+    updateControlVisibility();
+    
+    // Notify listener about mode change
+    if (onEditingModeChanged)
+        onEditingModeChanged(true);
+    
+    patternModel.sendChangeMessage();
+}
+
+void ColorConfigPanel::onClearClicked()
+{
+    auto& pitchSeq = patternModel.getPitchSequencer();
+    
+    if (pitchSeq.editingPitch)
+    {
+        // Clear pitch sequencer for current color
+        auto& config = patternModel.getColorConfig(currentColorChannel);
+        config.pitchWaveform.clear();
+        patternModel.setColorConfig(currentColorChannel, config);
+    }
+    else
+    {
+        // Clear all squares of current color
+        patternModel.clearColorChannel(currentColorChannel);
+    }
 }
 
 //==============================================================================
@@ -257,6 +363,14 @@ void ColorConfigPanel::onMidiChannelChanged()
 {
     auto& config = patternModel.getColorConfig(currentColorChannel);
     config.midiChannel = midiChannelCombo.getSelectedId();
+    
+    patternModel.setColorConfig(currentColorChannel, config);
+}
+
+void ColorConfigPanel::onPitchSeqLengthChanged()
+{
+    auto& config = patternModel.getColorConfig(currentColorChannel);
+    config.pitchSeqLoopLengthBars = pitchSeqLengthCombo.getSelectedId();
     
     patternModel.setColorConfig(currentColorChannel, config);
 }

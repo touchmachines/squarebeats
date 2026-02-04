@@ -9,9 +9,9 @@ namespace SquareBeats {
 /**
  * ColorConfigPanel - Configuration panel for a color channel
  * 
- * Context-sensitive panel that shows:
- * - In Square mode: Quantization, High/Low note, MIDI channel
- * - In Pitch Sequencer mode: Pitch range (semitones), Pitch Len
+ * Tab-based panel with two modes:
+ * - SQUARES tab: Quantization, High/Low note, MIDI channel
+ * - PITCH tab: Pitch sequencer editing mode
  */
 class ColorConfigPanel : public juce::Component
 {
@@ -39,15 +39,23 @@ public:
      * Refresh the UI to show current configuration values
      */
     void refreshFromModel();
+    
+    //==============================================================================
+    /**
+     * Callback for when editing mode changes (SQUARES vs PITCH tab)
+     * Set this to be notified when the user switches tabs
+     */
+    std::function<void(bool isPitchMode)> onEditingModeChanged;
 
 private:
     PatternModel& patternModel;
     int currentColorChannel;
     
-    // Section header label
-    juce::Label sectionHeader;
+    // Tab buttons
+    juce::TextButton notesTabButton;
+    juce::TextButton pitchTabButton;
     
-    // Square mode UI Components
+    // Note mode UI Components
     juce::Label quantizationLabel;
     juce::ComboBox quantizationCombo;
     
@@ -62,15 +70,37 @@ private:
     juce::Label midiChannelLabel;
     juce::ComboBox midiChannelCombo;
     
+    // Pitch sequencer controls (always visible)
+    juce::Label pitchSeqLengthLabel;
+    juce::ComboBox pitchSeqLengthCombo;
+    
+    // Context-sensitive clear button
+    juce::TextButton clearButton;
+    
     /**
      * Initialize UI components
      */
     void setupComponents();
     
     /**
-     * Update visibility of controls based on editing mode
+     * Update visibility of controls based on active tab
      */
     void updateControlVisibility();
+    
+    /**
+     * Switch to Notes tab
+     */
+    void switchToNotesTab();
+    
+    /**
+     * Switch to Pitch tab
+     */
+    void switchToPitchTab();
+    
+    /**
+     * Handle clear button click (context-sensitive)
+     */
+    void onClearClicked();
     
     /**
      * Handle quantization combo box change
@@ -91,6 +121,11 @@ private:
      * Handle MIDI channel combo box change
      */
     void onMidiChannelChanged();
+    
+    /**
+     * Handle pitch sequencer length change
+     */
+    void onPitchSeqLengthChanged();
     
     /**
      * Convert MIDI note number to note name (e.g., 60 -> "C4")

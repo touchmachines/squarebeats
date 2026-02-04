@@ -9,9 +9,8 @@ namespace SquareBeats {
 /**
  * ControlButtons - Control buttons for pattern operations
  * 
- * Provides:
- * - "Clear All" button to clear all squares in the current color channel
- * - Pitch sequencer show/hide toggle button
+ * Note: Most controls have been moved to ColorConfigPanel with tab-based UI.
+ * This component is kept for backward compatibility but may be removed.
  */
 class ControlButtons : public juce::Component
 {
@@ -26,7 +25,7 @@ public:
     
     //==============================================================================
     /**
-     * Set the currently selected color channel (for Clear All button)
+     * Set the currently selected color channel
      */
     void setSelectedColorChannel(int colorChannelId);
     
@@ -36,12 +35,13 @@ public:
     int getSelectedColorChannel() const { return selectedColorChannel; }
     
     /**
-     * Refresh the UI to show current pitch sequencer visibility state
+     * Refresh the UI to show current state
      */
     void refreshFromModel();
     
     /**
      * Listener interface for pitch sequencer visibility changes
+     * @deprecated Use ColorConfigPanel::onEditingModeChanged instead
      */
     class Listener
     {
@@ -52,6 +52,7 @@ public:
     
     /**
      * Add a listener for pitch sequencer visibility changes
+     * @deprecated Use ColorConfigPanel::onEditingModeChanged instead
      */
     void addListener(Listener* listener);
     
@@ -65,37 +66,7 @@ private:
     int selectedColorChannel;
     std::vector<Listener*> listeners;
     
-    // UI Components
-    juce::TextButton clearAllButton;
-    juce::TextButton pitchSequencerToggle;
-    juce::TextButton clearPitchSequencerButton;
-    juce::ComboBox pitchSeqLengthCombo;
-    juce::Label pitchSeqLengthLabel;
-    
-    /**
-     * Initialize UI components
-     */
-    void setupComponents();
-    
-    /**
-     * Handle Clear All button click
-     */
-    void onClearAllClicked();
-    
-    /**
-     * Handle pitch sequencer toggle click
-     */
-    void onPitchSequencerToggleClicked();
-    
-    /**
-     * Handle clear pitch sequencer button click
-     */
-    void onClearPitchSequencerClicked();
-    
-    /**
-     * Handle pitch sequencer length change
-     */
-    void onPitchSeqLengthChanged();
+    // This component is now mostly empty - controls moved to ColorConfigPanel
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ControlButtons)
 };

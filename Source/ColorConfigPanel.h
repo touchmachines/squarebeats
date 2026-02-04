@@ -7,6 +7,81 @@ namespace SquareBeats {
 
 //==============================================================================
 /**
+ * Custom LookAndFeel for tab buttons with clear active/inactive states
+ */
+class TabButtonLookAndFeel : public juce::LookAndFeel_V4
+{
+public:
+    void drawButtonBackground(juce::Graphics& g,
+                            juce::Button& button,
+                            const juce::Colour& backgroundColour,
+                            bool shouldDrawButtonAsHighlighted,
+                            bool shouldDrawButtonAsDown) override
+    {
+        auto bounds = button.getLocalBounds().toFloat();
+        auto isToggled = button.getToggleState();
+        
+        // Active tab: bright background with border
+        if (isToggled)
+        {
+            g.setColour(juce::Colour(0xff4a9eff)); // Bright blue
+            g.fillRoundedRectangle(bounds, 4.0f);
+            
+            // Add a subtle inner glow
+            g.setColour(juce::Colour(0xff6bb3ff));
+            g.drawRoundedRectangle(bounds.reduced(1.0f), 4.0f, 2.0f);
+        }
+        // Inactive tab: dark background
+        else
+        {
+            g.setColour(juce::Colour(0xff1a1a1a)); // Very dark
+            g.fillRoundedRectangle(bounds, 4.0f);
+            
+            // Subtle border
+            g.setColour(juce::Colour(0xff444444));
+            g.drawRoundedRectangle(bounds.reduced(1.0f), 4.0f, 1.0f);
+        }
+        
+        // Hover effect for inactive tabs
+        if (!isToggled && shouldDrawButtonAsHighlighted)
+        {
+            g.setColour(juce::Colour(0xff2a2a2a));
+            g.fillRoundedRectangle(bounds, 4.0f);
+            
+            g.setColour(juce::Colour(0xff666666));
+            g.drawRoundedRectangle(bounds.reduced(1.0f), 4.0f, 1.0f);
+        }
+    }
+    
+    void drawButtonText(juce::Graphics& g,
+                       juce::TextButton& button,
+                       bool shouldDrawButtonAsHighlighted,
+                       bool shouldDrawButtonAsDown) override
+    {
+        auto isToggled = button.getToggleState();
+        
+        // Active tab: white text, bold
+        if (isToggled)
+        {
+            g.setColour(juce::Colours::white);
+            g.setFont(juce::FontOptions(16.0f, juce::Font::bold));
+        }
+        // Inactive tab: dim gray text
+        else
+        {
+            g.setColour(juce::Colour(0xff888888));
+            g.setFont(juce::FontOptions(16.0f, juce::Font::plain));
+        }
+        
+        g.drawText(button.getButtonText(),
+                  button.getLocalBounds(),
+                  juce::Justification::centred,
+                  true);
+    }
+};
+
+//==============================================================================
+/**
  * ColorConfigPanel - Configuration panel for a color channel
  * 
  * Tab-based panel with two modes:
@@ -50,6 +125,9 @@ public:
 private:
     PatternModel& patternModel;
     int currentColorChannel;
+    
+    // Custom look and feel for tab buttons
+    TabButtonLookAndFeel tabButtonLookAndFeel;
     
     // Tab buttons
     juce::TextButton notesTabButton;

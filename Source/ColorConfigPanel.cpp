@@ -14,6 +14,9 @@ ColorConfigPanel::ColorConfigPanel(PatternModel& model)
 
 ColorConfigPanel::~ColorConfigPanel()
 {
+    // Clean up custom look and feel
+    notesTabButton.setLookAndFeel(nullptr);
+    pitchTabButton.setLookAndFeel(nullptr);
 }
 
 //==============================================================================
@@ -149,12 +152,14 @@ void ColorConfigPanel::setupComponents()
     notesTabButton.setRadioGroupId(1001);
     notesTabButton.onClick = [this]() { switchToNotesTab(); };
     notesTabButton.setToggleState(true, juce::dontSendNotification);
+    notesTabButton.setLookAndFeel(&tabButtonLookAndFeel);
     addAndMakeVisible(notesTabButton);
     
     pitchTabButton.setButtonText("PITCH");
     pitchTabButton.setClickingTogglesState(true);
     pitchTabButton.setRadioGroupId(1001);
     pitchTabButton.onClick = [this]() { switchToPitchTab(); };
+    pitchTabButton.setLookAndFeel(&tabButtonLookAndFeel);
     addAndMakeVisible(pitchTabButton);
     
     // Quantization label and combo

@@ -245,4 +245,75 @@ TEST_CASE("StateManager serialization and deserialization", "[StateManager]")
         REQUIRE(loaded.getColorConfig(0).pitchWaveform.size() == 100);
         REQUIRE(loaded.getColorConfig(0).pitchSeqLoopLengthBars == 16);
     }
+    
+    SECTION("Scale sequencer round-trip")
+    {
+        PatternModel original;
+        
+        // Set up scale sequencer with multiple segments
+        ScaleSequencerConfig& scaleSeq = original.getScaleSequencer();
+        scaleSeq.enabled = true;
+        scaleSeq.segments.clear();
+        
+        // Add some segments
+        scaleSeq.segments.push_back(ScaleSequenceSegment(ROOT_C, SCALE_MAJOR, 4));
+        scaleSeq.segments.push_back(ScaleSequenceSegment(ROOT_G, SCALE_DORIAN, 2));
+        scaleSeq.segments.push_back(ScaleSequenceSegment(ROOT_D, SCALE_MINOR, 8));
+        
+        juce::MemoryBlock stateData;
+        StateManager::saveState(original, stateData);
+        
+        // Deserialize
+        PatternModel loaded;
+        bool success = StateManager::loadState(loaded, stateData.getData(), static_cast<int>(stateData.getSize()));
+        
+        REQUIRE(success);
+        
+        const ScaleSequencerConfig& loadedScaleSeq = loaded.getScaleSequencer();
+        REQUIRE(loadedScaleSeq.enabled == true);
+        REQUIRE(loadedScaleSeq.segments.size() == 3);
+        
+        // Check first segment
+        REQUIRE(loadedScaleSeq.segments[0].rootNote == ROOT_C);
+        REQUIRE(loadedScaleSeq.segments[0].scaleType == SCALE_MAJOR);
+        REQUIRE(loadedScaleSeq.segments[0].lengthBars == 4);
+        
+        // Check second segment
+        REQUIRE(loadedScaleSeq.segments[1].rootNote == ROOT_G);
+        REQUIRE(loadedScaleSeq.segments[1].scaleType == SCALE_DORIAN);
+        REQUIRE(loadedScaleSeq.segments[1].lengthBars == 2);
+        
+        // Check third segment
+        REQUIRE(loadedScaleSeq.segments[2].rootNote == ROOT_D);
+        REQUIRE(loadedScaleSeq.segments[2].scaleType == SCALE_MINOR);
+        REQUIRE(loadedScaleSeq.segments[2].lengthBars == 8);
+    }
+    
+    SECTION("Scale sequencer disabled round-trip")
+    {
+        PatternModel original;
+        
+        // Set up scale sequencer but keep it disabled
+        ScaleSequencerConfig& scaleSeq = original.getScaleSequencer();
+        scaleSeq.enabled = false;
+        scaleSeq.segments.clear();
+        scaleSeq.segments.push_back(ScaleSequenceSegment(ROOT_A, SCALE_BLUES, 16));
+        
+        juce::MemoryBlock stateData;
+        StateManager::saveState(original, stateData);
+        
+        // Deserialize
+        PatternModel loaded;
+        bool success = StateManager::loadState(loaded, stateData.getData(), static_cast<int>(stateData.getSize()));
+        
+        REQUIRE(success);
+        
+        const ScaleSequencerConfig& loadedScaleSeq = loaded.getScaleSequencer();
+        REQUIRE(loadedScaleSeq.enabled == false);
+        REQUIRE(loadedScaleSeq.segments.size() == 1);
+        REQUIRE(loadedScaleSeq.segments[0].rootNote == ROOT_A);
+        REQUIRE(loadedScaleSeq.segments[0].scaleType == SCALE_BLUES);
+        REQUIRE(loadedScaleSeq.segments[0].lengthBars == 16);
+    }
 }
+

@@ -59,6 +59,18 @@ void StateManager::saveState(const PatternModel& model, juce::MemoryBlock& destD
     const ScaleConfig& scaleConfig = model.getScaleConfig();
     stream.writeInt(static_cast<int>(scaleConfig.rootNote));
     stream.writeInt(static_cast<int>(scaleConfig.scaleType));
+    
+    // Write scale sequencer configuration (Version 5+)
+    const ScaleSequencerConfig& scaleSeqConfig = model.getScaleSequencer();
+    stream.writeBool(scaleSeqConfig.enabled);
+    stream.writeInt(static_cast<int>(scaleSeqConfig.segments.size()));
+    
+    for (const auto& segment : scaleSeqConfig.segments)
+    {
+        stream.writeInt(static_cast<int>(segment.rootNote));
+        stream.writeInt(static_cast<int>(segment.scaleType));
+        stream.writeInt(segment.lengthBars);
+    }
 }
 
 //==============================================================================
@@ -270,6 +282,58 @@ bool StateManager::loadState(PatternModel& model, const void* data, int sizeInBy
             scaleConfig.rootNote = static_cast<RootNote>(juce::jlimit(0, 11, rootNote));
             scaleConfig.scaleType = static_cast<ScaleType>(juce::jlimit(0, static_cast<int>(NUM_SCALE_TYPES) - 1, scaleType));
             model.setScaleConfig(scaleConfig);
+        }
+        
+        // Read scale sequencer configuration (Version 5+)
+        if (version >= 5 && stream.getNumBytesRemaining() >= 5)  // 1 bool + 1 int minimum
+        {
+            bool scaleSeqEnabled = stream.readBool();
+            int numSegments = stream.readInt();
+            
+            // Validate segment count
+            if (numSegments < 0 || numSegments > ScaleSequencerConfig::MAX_SEGMENTS)
+            {
+                juce::Logger::writeToLog("StateManager: Invalid scale sequencer segment count: " + juce::String(numSegments));
+                numSegments = juce::jlimit(0, ScaleSequencerConfig::MAX_SEGMENTS, numSegments);
+            }
+            
+            ScaleSequencerConfig scaleSeqConfig;
+            scaleSeqConfig.enabled = scaleSeqEnabled;
+            scaleSeqConfig.segments.clear();
+            
+            for (int i = 0; i < numSegments; ++i)
+            {
+                if (stream.getNumBytesRemaining() < 12)  // 3 ints per segment
+                {
+                    juce::Logger::writeToLog("StateManager: Truncated data while reading scale sequencer segments");
+                    break;
+                }
+                
+                int rootNote = stream.readInt();
+                int scaleType = stream.readInt();
+                int lengthBars = stream.readInt();
+                
+                // Validate and clamp values
+                rootNote = juce::jlimit(0, 11, rootNote);
+                scaleType = juce::jlimit(0, static_cast<int>(NUM_SCALE_TYPES) - 1, scaleType);
+                lengthBars = juce::jlimit(1, 16, lengthBars);
+                
+                ScaleSequenceSegment segment(
+                    static_cast<RootNote>(rootNote),
+                    static_cast<ScaleType>(scaleType),
+                    lengthBars
+                );
+                scaleSeqConfig.segments.push_back(segment);
+            }
+            
+            // Ensure at least one segment exists
+            if (scaleSeqConfig.segments.empty())
+            {
+                scaleSeqConfig.segments.push_back(ScaleSequenceSegment(ROOT_C, SCALE_MAJOR, 4));
+            }
+            
+            // Use mutable getter to assign the loaded config
+            model.getScaleSequencer() = scaleSeqConfig;
         }
         
         return true;

@@ -80,6 +80,15 @@ SquareBeatsAudioProcessorEditor::SquareBeatsAudioProcessorEditor (SquareBeatsAud
         auto& scaleSeqConfig = audioProcessor.getPatternModel().getScaleSequencer();
         scaleSeqConfig.enabled = scaleSeqToggle.getToggleState();
         scaleSequencer->setVisible(scaleSeqConfig.enabled);
+        
+        // Enable/disable scale controls based on scale sequencer state
+        if (scaleControls != nullptr) {
+            scaleControls->setControlsEnabled(!scaleSeqConfig.enabled);
+            if (!scaleSeqConfig.enabled) {
+                scaleControls->setActiveScale(nullptr);  // Restore static scale display
+            }
+        }
+        
         resized();
         audioProcessor.getPatternModel().sendChangeMessage();
     };
@@ -248,9 +257,15 @@ void SquareBeatsAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadca
         scaleSequencer->refreshFromModel();
     }
     
-    // Update scale sequencer toggle state
+    // Update scale sequencer toggle state and scale controls enabled state
     auto& scaleSeqConfig = audioProcessor.getPatternModel().getScaleSequencer();
     scaleSeqToggle.setToggleState(scaleSeqConfig.enabled, juce::dontSendNotification);
+    scaleSequencer->setVisible(scaleSeqConfig.enabled);
+    
+    if (scaleControls != nullptr)
+    {
+        scaleControls->setControlsEnabled(!scaleSeqConfig.enabled);
+    }
 }
 
 void SquareBeatsAudioProcessorEditor::timerCallback()

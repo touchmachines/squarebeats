@@ -85,17 +85,32 @@ void ScaleControls::setActiveScale(const ScaleConfig* activeScale)
         showingActiveScale = true;
         currentActiveScale = *activeScale;
         
-        juce::String text = "Playing: ";
-        text += ScaleConfig::getRootNoteName(activeScale->rootNote);
-        text += " ";
-        text += ScaleConfig::getScaleTypeName(activeScale->scaleType);
+        // Update the dropdowns to show the active scale (but keep them disabled)
+        rootNoteCombo.setSelectedId(static_cast<int>(activeScale->rootNote) + 1, juce::dontSendNotification);
+        scaleTypeCombo.setSelectedId(static_cast<int>(activeScale->scaleType) + 1, juce::dontSendNotification);
         
-        activeScaleLabel.setText(text, juce::dontSendNotification);
-        activeScaleLabel.setVisible(true);
+        activeScaleLabel.setVisible(false);  // No longer need separate label
     } else {
         showingActiveScale = false;
         activeScaleLabel.setVisible(false);
+        
+        // Restore the static scale config to the dropdowns
+        const ScaleConfig& config = patternModel.getScaleConfig();
+        rootNoteCombo.setSelectedId(static_cast<int>(config.rootNote) + 1, juce::dontSendNotification);
+        scaleTypeCombo.setSelectedId(static_cast<int>(config.scaleType) + 1, juce::dontSendNotification);
     }
+}
+
+void ScaleControls::setControlsEnabled(bool enabled)
+{
+    controlsEnabled = enabled;
+    rootNoteCombo.setEnabled(enabled);
+    scaleTypeCombo.setEnabled(enabled);
+    
+    // Visual feedback - dim the labels when disabled
+    auto labelColor = enabled ? juce::Colours::white : juce::Colours::grey;
+    rootLabel.setColour(juce::Label::textColourId, labelColor);
+    scaleLabel.setColour(juce::Label::textColourId, labelColor);
 }
 
 void ScaleControls::comboBoxChanged(juce::ComboBox* comboBox)

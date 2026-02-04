@@ -36,6 +36,12 @@ public:
      */
     void setActiveScale(const ScaleConfig* activeScale);
     
+    /**
+     * Enable or disable the manual scale controls
+     * When disabled, shows the active scale from scale sequencer instead
+     */
+    void setControlsEnabled(bool enabled);
+    
 private:
     void comboBoxChanged(juce::ComboBox* comboBox) override;
     
@@ -50,6 +56,7 @@ private:
     // Active scale display (when scale sequencer is enabled)
     juce::Label activeScaleLabel;
     bool showingActiveScale = false;
+    bool controlsEnabled = true;
     ScaleConfig currentActiveScale;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ScaleControls)

@@ -304,13 +304,20 @@ void ScaleSequencerComponent::showSegmentEditor(int segmentIndex)
         }
     };
     
+    // Wider horizontal layout
     popupEditor = std::make_unique<PopupPanel>();
-    popupEditor->setSize(220, 160);
+    popupEditor->setSize(420, 90);
     
-    // Root note combo with label
+    // Row 1: Key, Scale, Bars - all side by side
+    int y = 10;
+    int x = 10;
+    int comboHeight = 28;
+    
+    // Key combo
     auto* rootLabel = new juce::Label("", "Key:");
-    rootLabel->setBounds(8, 8, 40, 24);
+    rootLabel->setBounds(x, y, 35, comboHeight);
     popupEditor->addAndMakeVisible(rootLabel);
+    x += 35;
     
     popupRootCombo = std::make_unique<juce::ComboBox>();
     for (int i = 0; i < 12; ++i) {
@@ -318,13 +325,15 @@ void ScaleSequencerComponent::showSegmentEditor(int segmentIndex)
     }
     popupRootCombo->setSelectedId(static_cast<int>(segment.rootNote) + 1, juce::dontSendNotification);
     popupRootCombo->onChange = [this, segmentIndex]() { onSegmentChanged(segmentIndex); };
-    popupRootCombo->setBounds(50, 8, 162, 24);
+    popupRootCombo->setBounds(x, y, 55, comboHeight);
     popupEditor->addAndMakeVisible(popupRootCombo.get());
+    x += 60;
     
-    // Scale type combo with label
+    // Scale combo
     auto* scaleLabel = new juce::Label("", "Scale:");
-    scaleLabel->setBounds(8, 38, 40, 24);
+    scaleLabel->setBounds(x, y, 45, comboHeight);
     popupEditor->addAndMakeVisible(scaleLabel);
+    x += 45;
     
     popupScaleCombo = std::make_unique<juce::ComboBox>();
     for (int i = 0; i < NUM_SCALE_TYPES; ++i) {
@@ -332,13 +341,15 @@ void ScaleSequencerComponent::showSegmentEditor(int segmentIndex)
     }
     popupScaleCombo->setSelectedId(static_cast<int>(segment.scaleType) + 1, juce::dontSendNotification);
     popupScaleCombo->onChange = [this, segmentIndex]() { onSegmentChanged(segmentIndex); };
-    popupScaleCombo->setBounds(50, 38, 162, 24);
+    popupScaleCombo->setBounds(x, y, 115, comboHeight);
     popupEditor->addAndMakeVisible(popupScaleCombo.get());
+    x += 120;
     
-    // Bars combo with label
+    // Bars combo
     auto* barsLabel = new juce::Label("", "Bars:");
-    barsLabel->setBounds(8, 68, 40, 24);
+    barsLabel->setBounds(x, y, 40, comboHeight);
     popupEditor->addAndMakeVisible(barsLabel);
+    x += 40;
     
     popupBarsCombo = std::make_unique<juce::ComboBox>();
     for (int i = 1; i <= 16; ++i) {
@@ -346,31 +357,31 @@ void ScaleSequencerComponent::showSegmentEditor(int segmentIndex)
     }
     popupBarsCombo->setSelectedId(segment.lengthBars, juce::dontSendNotification);
     popupBarsCombo->onChange = [this, segmentIndex]() { onSegmentChanged(segmentIndex); };
-    popupBarsCombo->setBounds(50, 68, 162, 24);
+    popupBarsCombo->setBounds(x, y, 70, comboHeight);
     popupEditor->addAndMakeVisible(popupBarsCombo.get());
     
-    // Delete button
+    // Row 2: Delete and Close buttons
+    y += comboHeight + 10;
     popupDeleteButton = std::make_unique<juce::TextButton>("Delete");
     popupDeleteButton->onClick = [this, segmentIndex]() { 
         onDeleteSegment(segmentIndex); 
     };
-    popupDeleteButton->setBounds(8, 105, 98, 28);
+    popupDeleteButton->setBounds(10, y, 195, 30);
     popupEditor->addAndMakeVisible(popupDeleteButton.get());
     
-    // Close button
     popupCloseButton = std::make_unique<juce::TextButton>("Close");
     popupCloseButton->onClick = [this]() { hideSegmentEditor(); };
-    popupCloseButton->setBounds(114, 105, 98, 28);
+    popupCloseButton->setBounds(215, y, 195, 30);
     popupEditor->addAndMakeVisible(popupCloseButton.get());
     
     // Position popup near the segment
     auto segBounds = getSegmentBounds(segmentIndex);
-    int popupX = static_cast<int>(segBounds.getCentreX() - 110);
+    int popupX = static_cast<int>(segBounds.getCentreX() - 210);
     int popupY = static_cast<int>(segBounds.getBottom() + 5);
     
     // Keep popup within component bounds
-    popupX = juce::jlimit(5, getWidth() - 225, popupX);
-    popupY = juce::jlimit(5, getHeight() - 165, popupY);
+    popupX = juce::jlimit(5, getWidth() - 425, popupX);
+    popupY = juce::jlimit(5, getHeight() - 95, popupY);
     
     popupEditor->setTopLeftPosition(popupX, popupY);
     

@@ -395,18 +395,24 @@ void ScaleSequencerComponent::showSegmentEditor(int segmentIndex)
     popupBarsCombo->setBounds(x, y, 70, comboHeight);
     popupEditor->addAndMakeVisible(popupBarsCombo.get());
     
-    // Row 2: Delete and Close buttons
+    // Row 2: Delete (small, red, left) and Close (prominent, right)
     y += comboHeight + 10;
-    popupDeleteButton = std::make_unique<juce::TextButton>("Delete");
+    
+    // Delete button - small, red-tinted, on the left (less accessible = safer)
+    popupDeleteButton = std::make_unique<juce::TextButton>("X");
+    popupDeleteButton->setColour(juce::TextButton::buttonColourId, juce::Colour(0xff8B4444));  // Muted red
+    popupDeleteButton->setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    popupDeleteButton->setTooltip("Delete this segment");
     popupDeleteButton->onClick = [this, segmentIndex]() { 
         onDeleteSegment(segmentIndex); 
     };
-    popupDeleteButton->setBounds(10, y, 195, 30);
+    popupDeleteButton->setBounds(10, y, 40, 30);  // Small square button
     popupEditor->addAndMakeVisible(popupDeleteButton.get());
     
+    // Close button - prominent, on the right (easy to reach)
     popupCloseButton = std::make_unique<juce::TextButton>("Close");
     popupCloseButton->onClick = [this]() { hideSegmentEditor(); };
-    popupCloseButton->setBounds(215, y, 195, 30);
+    popupCloseButton->setBounds(60, y, 350, 30);  // Takes most of the width
     popupEditor->addAndMakeVisible(popupCloseButton.get());
     
     // Position popup near the segment

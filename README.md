@@ -2,11 +2,23 @@
 
 A VST3 MIDI sequencer plugin with a unique square-drawing interface built with JUCE.
 
+## Typography
+
+SquareBeats uses **modern system fonts** for a clean, professional interface that works consistently across all platforms without requiring font installation.
+
+**Platform-Specific Fonts:**
+- **Windows**: Segoe UI - Microsoft's modern, highly readable interface font
+- **macOS**: SF Pro Text - Apple's native system font
+- **Linux**: Ubuntu - Clean, modern sans-serif
+
+These fonts are pre-installed on their respective operating systems, ensuring the plugin looks great out of the box for all users. The font is defined globally in `Source/AppFont.h` to ensure consistency across all UI components.
+
 ## Project Structure
 
 ```
 SquareBeats/
 ├── Source/
+│   ├── AppFont.h             # Global font configuration (Bebas Neue)
 │   ├── DataStructures.h      # Core data structures (Square, ColorChannelConfig, etc.)
 │   ├── PluginProcessor.h/cpp # Main audio processor
 │   └── PluginEditor.h/cpp    # Plugin UI editor
@@ -131,11 +143,17 @@ After building, the VST3 plugin will be located at:
 
 ### Installation
 
-Copy the entire `.vst3` folder (not just the file inside) to your DAW's VST3 plugin directory:
-- **Windows**: `C:\Program Files\Common Files\VST3\`
+Copy the entire `.vst3` folder (not just the file inside) to your VST3 plugin directory:
+- **Windows (Custom)**: `C:\vst\`
+- **Windows (Standard)**: `C:\Program Files\Common Files\VST3\`
 - **macOS**: `~/Library/Audio/Plug-Ins/VST3/`
 
-**Windows Installation Command:**
+**Windows Installation Command (Custom Directory):**
+```cmd
+xcopy /E /I /Y "build\SquareBeats_artefacts\Release\VST3\SquareBeats.vst3" "C:\vst\SquareBeats.vst3"
+```
+
+**Windows Installation Command (Standard Directory):**
 ```cmd
 xcopy /E /I /Y "build\SquareBeats_artefacts\Release\VST3\SquareBeats.vst3" "C:\Program Files\Common Files\VST3\SquareBeats.vst3"
 ```
@@ -229,7 +247,12 @@ cmake --build build --config Release --target SquareBeats_VST3 -j4
 
 ### 2. Installing the Plugin
 
-**Windows:**
+**Windows (Custom Directory):**
+```cmd
+xcopy /E /I /Y "build\SquareBeats_artefacts\Release\VST3\SquareBeats.vst3" "C:\vst\SquareBeats.vst3"
+```
+
+**Windows (Standard Directory):**
 ```cmd
 xcopy /E /I /Y "build\SquareBeats_artefacts\Release\VST3\SquareBeats.vst3" "C:\Program Files\Common Files\VST3\SquareBeats.vst3"
 ```

@@ -1,4 +1,5 @@
 #include "TimeSignatureControls.h"
+#include "AppFont.h"
 
 namespace SquareBeats {
 
@@ -82,7 +83,7 @@ void TimeSignatureControls::setupComponents()
     titleLabel.setText("Time Signature", juce::dontSendNotification);
     titleLabel.setColour(juce::Label::textColourId, juce::Colours::white);
     titleLabel.setJustificationType(juce::Justification::centred);
-    titleLabel.setFont(juce::Font(12.0f, juce::Font::bold));
+    titleLabel.setFont(AppFont::smallLabel());
     addAndMakeVisible(titleLabel);
     
     // Numerator label

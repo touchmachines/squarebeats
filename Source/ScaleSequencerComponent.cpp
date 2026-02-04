@@ -1,4 +1,5 @@
 #include "ScaleSequencerComponent.h"
+#include "AppFont.h"
 
 namespace SquareBeats {
 
@@ -29,7 +30,7 @@ void ScaleSequencerComponent::paint(juce::Graphics& g)
     
     // Title
     g.setColour(juce::Colours::white);
-    g.setFont(14.0f);
+    g.setFont(AppFont::title());
     g.drawText("Scale Sequence", bounds.removeFromTop(25.0f), juce::Justification::centred);
     
     // Timeline area
@@ -75,9 +76,15 @@ void ScaleSequencerComponent::paint(juce::Graphics& g)
         g.setColour(juce::Colours::white.withAlpha(0.5f));
         g.drawRoundedRectangle(segBounds.reduced(1.0f), 4.0f, 1.0f);
         
+        // Mini keyboard visualization (only if segment is wide enough)
+        if (segmentWidth >= 60.0f) {
+            auto intervals = ScaleConfig::getScaleIntervals(segment.scaleType);
+            drawMiniKeyboard(g, segBounds, segment.rootNote, intervals, segColor);
+        }
+        
         // Segment text
         g.setColour(juce::Colours::white);
-        g.setFont(11.0f);
+        g.setFont(AppFont::getFont(11.0f));
         
         juce::String segText = juce::String(ScaleConfig::getRootNoteName(segment.rootNote)) + " " +
                                juce::String(ScaleConfig::getScaleTypeName(segment.scaleType));
@@ -87,11 +94,11 @@ void ScaleSequencerComponent::paint(juce::Graphics& g)
         if (segmentWidth > 60) {
             g.drawText(segText, textBounds.removeFromTop(textBounds.getHeight() * 0.6f), 
                       juce::Justification::centred, true);
-            g.setFont(9.0f);
+            g.setFont(AppFont::micro());
             g.drawText(barsText, textBounds, juce::Justification::centred, true);
         } else {
             // Compact display for narrow segments
-            g.setFont(9.0f);
+            g.setFont(AppFont::micro());
             g.drawText(ScaleConfig::getRootNoteName(segment.rootNote), textBounds, 
                       juce::Justification::centred, true);
         }
@@ -518,6 +525,270 @@ juce::Colour ScaleSequencerComponent::getSegmentColor(int index) const
     };
     
     return colors[index % 8];
+}
+
+//==============================================================================
+// Keyboard layout helper functions
+
+ScaleSequencerComponent::KeyboardLayout ScaleSequencerComponent::calculateKeyboardLayout(
+    const juce::Rectangle<float>& segmentBounds) const
+{
+    KeyboardLayout layout;
+    layout.shouldRender = shouldRenderKeyboard(segmentBounds);
+    
+    if (!layout.shouldRender) {
+        return layout;
+    }
+    
+    // Calculate available space for keyboard
+    // Reserve space for text at the top (approximately 60% of segment height)
+    float textHeight = segmentBounds.getHeight() * 0.6f;
+    float availableHeight = segmentBounds.getHeight() - textHeight;
+    
+    // Position keyboard in the bottom portion of the segment
+    float keyboardTop = segmentBounds.getY() + textHeight;
+    float keyboardHeight = availableHeight * 0.8f;  // Use 80% of available space
+    
+    // Add horizontal padding
+    float horizontalPadding = 4.0f;
+    float availableWidth = segmentBounds.getWidth() - (2.0f * horizontalPadding);
+    
+    // Calculate keyboard bounds
+    layout.keyboardBounds = juce::Rectangle<float>(
+        segmentBounds.getX() + horizontalPadding,
+        keyboardTop,
+        availableWidth,
+        keyboardHeight
+    );
+    
+    // Calculate key dimensions
+    // 7 white keys span the full width
+    layout.whiteKeyWidth = availableWidth / 7.0f;
+    layout.whiteKeyHeight = keyboardHeight;
+    
+    // Black keys are approximately 60% the size of white keys
+    layout.blackKeyWidth = layout.whiteKeyWidth * 0.6f;
+    layout.blackKeyHeight = layout.whiteKeyHeight * 0.6f;
+    
+    return layout;
+}
+
+juce::Rectangle<float> ScaleSequencerComponent::getWhiteKeyBounds(
+    const KeyboardLayout& layout, int keyIndex) const
+{
+    // White keys: C=0, D=1, E=2, F=3, G=4, A=5, B=6
+    if (keyIndex < 0 || keyIndex > 6) {
+        return {};
+    }
+    
+    float x = layout.keyboardBounds.getX() + (keyIndex * layout.whiteKeyWidth);
+    
+    return juce::Rectangle<float>(
+        x,
+        layout.keyboardBounds.getY(),
+        layout.whiteKeyWidth,
+        layout.whiteKeyHeight
+    );
+}
+
+juce::Rectangle<float> ScaleSequencerComponent::getBlackKeyBounds(
+    const KeyboardLayout& layout, int keyIndex) const
+{
+    // Black keys: C#=0, D#=1, F#=2, G#=3, A#=4
+    // Positioned at offsets: 0.7, 1.7, 3.7, 4.7, 5.7 (relative to white keys)
+    static const float blackKeyOffsets[] = { 0.7f, 1.7f, 3.7f, 4.7f, 5.7f };
+    
+    if (keyIndex < 0 || keyIndex > 4) {
+        return {};
+    }
+    
+    float offset = blackKeyOffsets[keyIndex];
+    float x = layout.keyboardBounds.getX() + (offset * layout.whiteKeyWidth);
+    
+    // Center the black key horizontally
+    x -= layout.blackKeyWidth * 0.5f;
+    
+    return juce::Rectangle<float>(
+        x,
+        layout.keyboardBounds.getY(),
+        layout.blackKeyWidth,
+        layout.blackKeyHeight
+    );
+}
+
+bool ScaleSequencerComponent::shouldRenderKeyboard(
+    const juce::Rectangle<float>& segmentBounds) const
+{
+    // Minimum width threshold: 60 pixels
+    const float minWidth = 60.0f;
+    
+    // Minimum height threshold: 20 pixels
+    const float minHeight = 20.0f;
+    
+    return segmentBounds.getWidth() >= minWidth && 
+           segmentBounds.getHeight() >= minHeight;
+}
+
+//==============================================================================
+// Note highlighting helper functions
+
+bool ScaleSequencerComponent::isNoteInScale(
+    int chromaticNote, 
+    RootNote rootNote, 
+    const std::vector<int>& scaleIntervals) const
+{
+    // Normalize chromatic note to 0-11 range
+    int noteInOctave = chromaticNote % 12;
+    
+    // Calculate the note's position relative to the root
+    int relativeNote = (noteInOctave - static_cast<int>(rootNote) + 12) % 12;
+    
+    // Check if this relative position is in the scale intervals
+    for (int interval : scaleIntervals) {
+        if (relativeNote == interval) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+bool ScaleSequencerComponent::isRootNote(
+    int chromaticNote, 
+    RootNote rootNote) const
+{
+    // Normalize chromatic note to 0-11 range
+    int noteInOctave = chromaticNote % 12;
+    
+    // Check if this note matches the root note
+    return noteInOctave == static_cast<int>(rootNote);
+}
+
+float ScaleSequencerComponent::getKeyAlpha(
+    int chromaticNote, 
+    RootNote rootNote, 
+    const std::vector<int>& scaleIntervals) const
+{
+    // Three visual states with different alpha values:
+    // 1. Out of scale: minimal fill (0.1)
+    // 2. In scale: soft glow (0.4)
+    // 3. Root note: bright glow (0.7)
+    
+    if (isRootNote(chromaticNote, rootNote)) {
+        return 0.7f;  // Root note emphasis
+    }
+    
+    if (isNoteInScale(chromaticNote, rootNote, scaleIntervals)) {
+        return 0.4f;  // In scale
+    }
+    
+    return 0.1f;  // Out of scale
+}
+
+//==============================================================================
+// Mini keyboard rendering
+
+void ScaleSequencerComponent::drawMiniKeyboard(
+    juce::Graphics& g,
+    const juce::Rectangle<float>& segmentBounds,
+    RootNote rootNote,
+    const std::vector<int>& scaleIntervals,
+    const juce::Colour& segmentColor)
+{
+    // Calculate keyboard layout
+    auto layout = calculateKeyboardLayout(segmentBounds);
+    
+    if (!layout.shouldRender) {
+        return;  // Segment too small to render keyboard
+    }
+    
+    // OPTION 1: HIGH CONTRAST WITH BORDERS
+    // - Out-of-scale keys: Dark outline only, transparent/empty fill
+    // - In-scale keys: Filled with bright, saturated segment color
+    // - Root note: Even brighter fill + indicator dot
+    // - All keys have visible white borders for definition
+    
+    // Render white keys (C, D, E, F, G, A, B)
+    // Chromatic note mapping: C=0, D=2, E=4, F=5, G=7, A=9, B=11
+    static const int whiteKeyChromaticNotes[] = { 0, 2, 4, 5, 7, 9, 11 };
+    
+    for (int i = 0; i < 7; ++i) {
+        int chromaticNote = whiteKeyChromaticNotes[i];
+        auto keyBounds = getWhiteKeyBounds(layout, i);
+        
+        bool inScale = isNoteInScale(chromaticNote, rootNote, scaleIntervals);
+        bool isRoot = isRootNote(chromaticNote, rootNote);
+        
+        if (inScale) {
+            // In-scale keys: filled with bright, saturated segment color
+            juce::Colour fillColor = segmentColor.brighter(0.4f).withSaturation(0.8f);
+            
+            if (isRoot) {
+                // Root note: even brighter
+                fillColor = fillColor.brighter(0.3f);
+            }
+            
+            g.setColour(fillColor.withAlpha(0.85f));
+            g.fillRect(keyBounds.reduced(0.5f));
+        } else {
+            // Out-of-scale keys: transparent/empty (no fill)
+            // Just the outline will be drawn below
+        }
+        
+        // Draw white outline for all keys (high visibility)
+        g.setColour(juce::Colours::white.withAlpha(0.6f));
+        g.drawRect(keyBounds.reduced(0.5f), 1.0f);
+        
+        // Add indicator dot for root note
+        if (isRoot) {
+            float dotSize = std::min(layout.whiteKeyWidth * 0.25f, 3.5f);
+            float dotX = keyBounds.getCentreX() - dotSize * 0.5f;
+            float dotY = keyBounds.getBottom() - dotSize - 1.5f;
+            g.setColour(juce::Colours::white.withAlpha(0.9f));
+            g.fillEllipse(dotX, dotY, dotSize, dotSize);
+        }
+    }
+    
+    // Render black keys (C#, D#, F#, G#, A#)
+    // Chromatic note mapping: C#=1, D#=3, F#=6, G#=8, A#=10
+    static const int blackKeyChromaticNotes[] = { 1, 3, 6, 8, 10 };
+    
+    for (int i = 0; i < 5; ++i) {
+        int chromaticNote = blackKeyChromaticNotes[i];
+        auto keyBounds = getBlackKeyBounds(layout, i);
+        
+        bool inScale = isNoteInScale(chromaticNote, rootNote, scaleIntervals);
+        bool isRoot = isRootNote(chromaticNote, rootNote);
+        
+        if (inScale) {
+            // In-scale keys: filled with bright, saturated segment color
+            juce::Colour fillColor = segmentColor.brighter(0.4f).withSaturation(0.8f);
+            
+            if (isRoot) {
+                // Root note: even brighter
+                fillColor = fillColor.brighter(0.3f);
+            }
+            
+            g.setColour(fillColor.withAlpha(0.85f));
+            g.fillRect(keyBounds.reduced(0.5f));
+        } else {
+            // Out-of-scale keys: transparent/empty (no fill)
+            // Just the outline will be drawn below
+        }
+        
+        // Draw white outline for all keys (high visibility)
+        g.setColour(juce::Colours::white.withAlpha(0.6f));
+        g.drawRect(keyBounds.reduced(0.5f), 1.0f);
+        
+        // Add indicator dot for root note
+        if (isRoot) {
+            float dotSize = std::min(layout.blackKeyWidth * 0.3f, 3.0f);
+            float dotX = keyBounds.getCentreX() - dotSize * 0.5f;
+            float dotY = keyBounds.getBottom() - dotSize - 1.0f;
+            g.setColour(juce::Colours::white.withAlpha(0.9f));
+            g.fillEllipse(dotX, dotY, dotSize, dotSize);
+        }
+    }
 }
 
 } // namespace SquareBeats

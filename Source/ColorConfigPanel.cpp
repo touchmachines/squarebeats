@@ -1,4 +1,5 @@
 #include "ColorConfigPanel.h"
+#include "AppFont.h"
 
 namespace SquareBeats {
 
@@ -159,7 +160,7 @@ void ColorConfigPanel::setupComponents()
     // Quantization label and combo
     quantizationLabel.setText("Quantization:", juce::dontSendNotification);
     quantizationLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-    quantizationLabel.setFont(juce::Font(13.0f));
+    quantizationLabel.setFont(AppFont::label());
     addAndMakeVisible(quantizationLabel);
     
     quantizationCombo.addItem("1/32", 1);
@@ -175,7 +176,7 @@ void ColorConfigPanel::setupComponents()
     // High note label, slider, and value
     highNoteLabel.setText("High Note:", juce::dontSendNotification);
     highNoteLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-    highNoteLabel.setFont(juce::Font(13.0f));
+    highNoteLabel.setFont(AppFont::label());
     addAndMakeVisible(highNoteLabel);
     
     highNoteSlider.setRange(0, 127, 1);
@@ -188,13 +189,13 @@ void ColorConfigPanel::setupComponents()
     highNoteValue.setText("C6", juce::dontSendNotification);
     highNoteValue.setColour(juce::Label::textColourId, juce::Colours::white);
     highNoteValue.setJustificationType(juce::Justification::centred);
-    highNoteValue.setFont(juce::Font(13.0f));
+    highNoteValue.setFont(AppFont::label());
     addAndMakeVisible(highNoteValue);
     
     // Low note label, slider, and value
     lowNoteLabel.setText("Low Note:", juce::dontSendNotification);
     lowNoteLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-    lowNoteLabel.setFont(juce::Font(13.0f));
+    lowNoteLabel.setFont(AppFont::label());
     addAndMakeVisible(lowNoteLabel);
     
     lowNoteSlider.setRange(0, 127, 1);
@@ -207,13 +208,13 @@ void ColorConfigPanel::setupComponents()
     lowNoteValue.setText("C3", juce::dontSendNotification);
     lowNoteValue.setColour(juce::Label::textColourId, juce::Colours::white);
     lowNoteValue.setJustificationType(juce::Justification::centred);
-    lowNoteValue.setFont(juce::Font(13.0f));
+    lowNoteValue.setFont(AppFont::label());
     addAndMakeVisible(lowNoteValue);
     
     // MIDI channel label and combo
     midiChannelLabel.setText("MIDI Channel:", juce::dontSendNotification);
     midiChannelLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-    midiChannelLabel.setFont(juce::Font(13.0f));
+    midiChannelLabel.setFont(AppFont::label());
     addAndMakeVisible(midiChannelLabel);
     
     for (int i = 1; i <= 16; ++i)
@@ -227,7 +228,7 @@ void ColorConfigPanel::setupComponents()
     // Pitch sequencer length
     pitchSeqLengthLabel.setText("Pitch Len:", juce::dontSendNotification);
     pitchSeqLengthLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-    pitchSeqLengthLabel.setFont(juce::Font(13.0f));
+    pitchSeqLengthLabel.setFont(AppFont::label());
     addAndMakeVisible(pitchSeqLengthLabel);
     
     for (int i = 1; i <= 64; ++i)

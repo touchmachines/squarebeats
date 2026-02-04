@@ -1,4 +1,5 @@
 #include "PlayModeControls.h"
+#include "AppFont.h"
 
 namespace SquareBeats {
 
@@ -220,17 +221,17 @@ void PlayModeXYPad::setupComponents()
     
     xyPadLabel.setText("PROBABILITY XY PAD", juce::dontSendNotification);
     xyPadLabel.setJustificationType(juce::Justification::centred);
-    xyPadLabel.setFont(juce::Font(12.0f, juce::Font::bold));
+    xyPadLabel.setFont(AppFont::smallLabel());
     addAndMakeVisible(xyPadLabel);
     
     xAxisLabel.setText("Step Jump Size", juce::dontSendNotification);
     xAxisLabel.setJustificationType(juce::Justification::centred);
-    xAxisLabel.setFont(juce::Font(10.0f));
+    xAxisLabel.setFont(AppFont::tiny());
     addAndMakeVisible(xAxisLabel);
     
     yAxisLabel.setText("Prob%", juce::dontSendNotification);
     yAxisLabel.setJustificationType(juce::Justification::centred);
-    yAxisLabel.setFont(juce::Font(9.0f));
+    yAxisLabel.setFont(AppFont::micro());
     addAndMakeVisible(yAxisLabel);
 }
 
@@ -350,19 +351,19 @@ void PlayModeControls::setupComponents()
     // XY Pad label
     xyPadLabel.setText("PROBABILITY", juce::dontSendNotification);
     xyPadLabel.setJustificationType(juce::Justification::centred);
-    xyPadLabel.setFont(juce::Font(12.0f, juce::Font::bold));
+    xyPadLabel.setFont(AppFont::smallLabel());
     addAndMakeVisible(xyPadLabel);
     
     // X-axis label
     xAxisLabel.setText("Step Jump Size", juce::dontSendNotification);
     xAxisLabel.setJustificationType(juce::Justification::centred);
-    xAxisLabel.setFont(juce::Font(10.0f));
+    xAxisLabel.setFont(AppFont::tiny());
     addAndMakeVisible(xAxisLabel);
     
     // Y-axis label (rotated text would be ideal, but we'll use abbreviated)
     yAxisLabel.setText("Prob%", juce::dontSendNotification);
     yAxisLabel.setJustificationType(juce::Justification::centred);
-    yAxisLabel.setFont(juce::Font(9.0f));
+    yAxisLabel.setFont(AppFont::micro());
     addAndMakeVisible(yAxisLabel);
 }
 

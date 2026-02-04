@@ -99,6 +99,35 @@ private:
     
     juce::Colour getSegmentColor(int index) const;
     
+    // Keyboard layout helper functions
+    struct KeyboardLayout {
+        juce::Rectangle<float> keyboardBounds;
+        float whiteKeyWidth;
+        float whiteKeyHeight;
+        float blackKeyWidth;
+        float blackKeyHeight;
+        bool shouldRender;
+    };
+    
+    KeyboardLayout calculateKeyboardLayout(const juce::Rectangle<float>& segmentBounds) const;
+    juce::Rectangle<float> getWhiteKeyBounds(const KeyboardLayout& layout, int keyIndex) const;
+    juce::Rectangle<float> getBlackKeyBounds(const KeyboardLayout& layout, int keyIndex) const;
+    bool shouldRenderKeyboard(const juce::Rectangle<float>& segmentBounds) const;
+    
+    // Note highlighting helper functions
+    bool isNoteInScale(int chromaticNote, RootNote rootNote, const std::vector<int>& scaleIntervals) const;
+    bool isRootNote(int chromaticNote, RootNote rootNote) const;
+    float getKeyAlpha(int chromaticNote, RootNote rootNote, const std::vector<int>& scaleIntervals) const;
+    
+    // Mini keyboard rendering
+    void drawMiniKeyboard(
+        juce::Graphics& g,
+        const juce::Rectangle<float>& segmentBounds,
+        RootNote rootNote,
+        const std::vector<int>& scaleIntervals,
+        const juce::Colour& segmentColor
+    );
+    
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ScaleSequencerComponent)
 };
 

@@ -38,8 +38,19 @@ echo.
 echo VST3 Plugin Location:
 echo build\SquareBeats_artefacts\Release\VST3\SquareBeats.vst3
 echo.
-echo To install, copy the .vst3 folder to your VST3 directory:
-echo   Windows: C:\Program Files\Common Files\VST3\
+
+REM Auto-install to C:\vst
+echo Installing to C:\vst...
+if not exist "C:\vst" mkdir "C:\vst"
+xcopy /E /I /Y "build\SquareBeats_artefacts\Release\VST3\SquareBeats.vst3" "C:\vst\SquareBeats.vst3"
+if %ERRORLEVEL% EQU 0 (
+    echo Successfully installed to C:\vst\SquareBeats.vst3
+) else (
+    echo Warning: Failed to copy to C:\vst
+)
+echo.
+echo Note: You can also install to the standard VST3 directory:
+echo   C:\Program Files\Common Files\VST3\
 echo.
 
 pause

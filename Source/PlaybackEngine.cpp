@@ -406,13 +406,16 @@ void PlaybackEngine::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBu
     double loopBars = pattern->getLoopLength();
     loopLengthBeats = loopBars * timeSig.getBeatsPerBar();
     
-    // Update per-color loop lengths
+    // Update per-color loop lengths and sync positions for colors using global
     for (int colorId = 0; colorId < 4; ++colorId) {
         const ColorChannelConfig& config = pattern->getColorConfig(colorId);
         if (config.mainLoopLengthBars > 0.0) {
+            // Using per-color override
             colorLoopLengthBeats[colorId] = config.mainLoopLengthBars * timeSig.getBeatsPerBar();
         } else {
+            // Using global - sync position to global playhead
             colorLoopLengthBeats[colorId] = loopLengthBeats;
+            colorPositionBeats[colorId] = currentPositionBeats;
         }
     }
     

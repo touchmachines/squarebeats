@@ -52,38 +52,41 @@ void PitchSequencerComponent::paint(juce::Graphics& g)
     // Always draw the waveform (visible in both modes)
     drawWaveform(g);
     
-    // Always draw playback position indicator for pitch sequencer with glow
+    // Draw playback position as a circle moving along the waveform (no vertical bar)
     auto& colorConfig = patternModel.getColorConfig(selectedColorChannel);
     float pixelX = bounds.getX() + playbackPosition * bounds.getWidth();
     
-    // Draw glow around playback position
-    juce::ColourGradient glowGradient(
-        colorConfig.displayColor.withAlpha(0.4f),
-        pixelX, bounds.getCentreY(),
-        colorConfig.displayColor.withAlpha(0.0f),
-        pixelX + 20.0f, bounds.getCentreY(),
-        false
-    );
-    g.setGradientFill(glowGradient);
-    g.fillRect(pixelX, bounds.getY(), 20.0f, bounds.getHeight());
-    
-    // Draw the main playback line
-    g.setColour(colorConfig.displayColor.withAlpha(0.9f));
-    g.drawLine(pixelX, bounds.getY(), pixelX, bounds.getBottom(), 3.0f);
-    
-    // Draw a bright dot at the current waveform value
+    // Draw a larger glowing dot at the current waveform value (touch-friendly)
     if (!colorConfig.pitchWaveform.empty())
     {
         float currentPitch = colorConfig.getPitchOffsetAt(playbackPosition);
         float dotY = pitchOffsetToPixelY(currentPitch);
         
-        // Outer glow
-        g.setColour(colorConfig.displayColor.withAlpha(0.5f));
-        g.fillEllipse(pixelX - 8.0f, dotY - 8.0f, 16.0f, 16.0f);
+        // Large outer glow
+        g.setColour(colorConfig.displayColor.withAlpha(0.3f));
+        g.fillEllipse(pixelX - 20.0f, dotY - 20.0f, 40.0f, 40.0f);
         
-        // Inner dot
+        // Medium glow ring
+        g.setColour(colorConfig.displayColor.withAlpha(0.5f));
+        g.fillEllipse(pixelX - 12.0f, dotY - 12.0f, 24.0f, 24.0f);
+        
+        // Inner bright dot
         g.setColour(juce::Colours::white);
-        g.fillEllipse(pixelX - 4.0f, dotY - 4.0f, 8.0f, 8.0f);
+        g.fillEllipse(pixelX - 6.0f, dotY - 6.0f, 12.0f, 12.0f);
+    }
+    else
+    {
+        // No waveform yet - show dot at center line
+        float dotY = bounds.getCentreY();
+        
+        g.setColour(colorConfig.displayColor.withAlpha(0.3f));
+        g.fillEllipse(pixelX - 20.0f, dotY - 20.0f, 40.0f, 40.0f);
+        
+        g.setColour(colorConfig.displayColor.withAlpha(0.5f));
+        g.fillEllipse(pixelX - 12.0f, dotY - 12.0f, 24.0f, 24.0f);
+        
+        g.setColour(juce::Colours::white);
+        g.fillEllipse(pixelX - 6.0f, dotY - 6.0f, 12.0f, 12.0f);
     }
 }
 

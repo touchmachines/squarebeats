@@ -78,6 +78,12 @@ public:
     bool getIsPlaying() const { return isPlaying; }
     
     /**
+     * Reset playback position to start of loop
+     * Call this when changing play modes to stay on beat
+     */
+    void resetPlaybackPosition();
+    
+    /**
      * Set the visual feedback state for UI updates
      */
     void setVisualFeedbackState(VisualFeedbackState* state) { visualFeedback = state; }

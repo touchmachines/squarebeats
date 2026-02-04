@@ -56,6 +56,9 @@ public:
     
     // Callback when probability mode is selected (to show/hide XY pad)
     std::function<void(bool)> onProbabilityModeChanged;
+    
+    // Callback when play mode changes (to reset transport)
+    std::function<void()> onPlayModeChanged;
 
 private:
     PatternModel& patternModel;

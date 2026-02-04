@@ -81,6 +81,10 @@ SquareBeatsAudioProcessorEditor::SquareBeatsAudioProcessorEditor (SquareBeatsAud
     playModeButtons->onProbabilityModeChanged = [this](bool /*isProbability*/) {
         updateContextSensitiveControls();
     };
+    playModeButtons->onPlayModeChanged = [this]() {
+        // Reset transport position when play mode changes to stay on beat
+        audioProcessor.getPlaybackEngine().resetPlaybackPosition();
+    };
     addAndMakeVisible(playModeButtons.get());
     
     // Create play mode XY pad (for side panel, only visible in probability mode)

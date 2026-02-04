@@ -146,6 +146,12 @@ void PlayModeButtons::onModeButtonClicked(PlayMode mode)
     {
         onProbabilityModeChanged(isProbability);
     }
+    
+    // Notify that play mode changed (for transport reset)
+    if (onPlayModeChanged)
+    {
+        onPlayModeChanged();
+    }
 }
 
 void PlayModeButtons::updateButtonStates()

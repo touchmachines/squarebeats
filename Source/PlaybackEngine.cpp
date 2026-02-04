@@ -273,6 +273,17 @@ double PlaybackEngine::getPositionInBars() const
     return absolutePositionBeats / beatsPerBar;
 }
 
+void PlaybackEngine::resetPlaybackPosition()
+{
+    currentPositionBeats = 0.0;
+    absolutePositionBeats = 0.0;
+    currentStepIndex = 0;
+    
+    // Stop all active notes when resetting
+    juce::MidiBuffer dummyBuffer;
+    stopAllNotes(dummyBuffer);
+}
+
 void PlaybackEngine::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     if (!isPlaying || pattern == nullptr) {

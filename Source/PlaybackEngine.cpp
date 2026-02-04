@@ -59,28 +59,40 @@ void PlaybackEngine::handleTransportChange(bool playing, double sr, double tempo
     if (wasPlaying && !isPlaying) {
         juce::MidiBuffer tempBuffer;
         stopAllNotes(tempBuffer);
-        // Note: In real usage, this buffer would need to be processed
-        // For now, we just clear the active notes
         activeNotesByColor.clear();
         
-        // Reset step position
+        // Reset step position and pendulum direction
         currentStepIndex = 0;
         pendulumForward = true;
     }
     
-    // Update current position from host
-    // Store absolute position for pitch sequencer (independent of main loop)
+    // Update absolute position for pitch sequencer (always tracks host)
     absolutePositionBeats = timeInBeats;
     if (absolutePositionBeats < 0.0) {
         absolutePositionBeats = 0.0;
     }
     
-    // Wrap to main loop length for square triggering
-    if (pattern != nullptr && loopLengthBeats > 0.0) {
-        currentPositionBeats = std::fmod(timeInBeats, loopLengthBeats);
-        if (currentPositionBeats < 0.0) {
-            currentPositionBeats += loopLengthBeats;
+    // Only sync currentPositionBeats with host when transport JUST started
+    // During playback, let updatePlaybackPosition handle position based on play mode
+    bool transportJustStarted = !wasPlaying && isPlaying;
+    
+    if (transportJustStarted && pattern != nullptr && loopLengthBeats > 0.0) {
+        double hostPosition = std::fmod(timeInBeats, loopLengthBeats);
+        if (hostPosition < 0.0) {
+            hostPosition += loopLengthBeats;
         }
+        
+        // For reverse mode, start at the end of the loop
+        const PlayModeConfig& playModeConfig = pattern->getPlayModeConfig();
+        if (playModeConfig.mode == PLAY_BACKWARD) {
+            // Start from end of loop minus the host's offset
+            currentPositionBeats = loopLengthBeats - hostPosition;
+            if (currentPositionBeats < 0.0) currentPositionBeats = 0.0;
+        } else {
+            currentPositionBeats = hostPosition;
+        }
+        
+        pendulumForward = true;
     }
 }
 
@@ -214,6 +226,47 @@ float PlaybackEngine::getNormalizedPitchSeqPosition(int colorId) const
     return static_cast<float>(normalizedPos);
 }
 
+float PlaybackEngine::getNormalizedScaleSeqPosition() const
+{
+    if (pattern == nullptr) {
+        return 0.0f;
+    }
+    
+    const ScaleSequencerConfig& scaleSeq = pattern->getScaleSequencer();
+    if (!scaleSeq.enabled || scaleSeq.segments.empty()) {
+        return 0.0f;
+    }
+    
+    TimeSignature timeSig = pattern->getTimeSignature();
+    double beatsPerBar = timeSig.getBeatsPerBar();
+    int totalBars = scaleSeq.getTotalLengthBars();
+    
+    if (totalBars <= 0 || beatsPerBar <= 0.0) {
+        return 0.0f;
+    }
+    
+    double totalBeats = totalBars * beatsPerBar;
+    double posInSequence = std::fmod(absolutePositionBeats, totalBeats);
+    
+    return static_cast<float>(posInSequence / totalBeats);
+}
+
+double PlaybackEngine::getPositionInBars() const
+{
+    if (pattern == nullptr) {
+        return 0.0;
+    }
+    
+    TimeSignature timeSig = pattern->getTimeSignature();
+    double beatsPerBar = timeSig.getBeatsPerBar();
+    
+    if (beatsPerBar <= 0.0) {
+        return 0.0;
+    }
+    
+    return absolutePositionBeats / beatsPerBar;
+}
+
 void PlaybackEngine::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     if (!isPlaying || pattern == nullptr) {
@@ -227,19 +280,69 @@ void PlaybackEngine::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBu
     
     int numSamples = buffer.getNumSamples();
     
-    // Calculate time range for this block
+    // Store position BEFORE updating (this is where we start this block)
     double blockStartBeats = currentPositionBeats;
     
-    // Calculate how many beats this block represents
-    double secondsInBlock = numSamples / sampleRate;
-    double beatsInBlock = secondsInBlock * (bpm / 60.0);
-    double blockEndBeats = blockStartBeats + beatsInBlock;
-    
-    // Process square triggers in this time range
-    processSquareTriggers(midiMessages, blockStartBeats, blockEndBeats);
-    
-    // Update playback position for next block
+    // Update playback position based on play mode
+    // This advances currentPositionBeats according to the selected play mode
     updatePlaybackPosition(numSamples);
+    
+    // Now currentPositionBeats is where we END this block
+    double blockEndBeats = currentPositionBeats;
+    
+    // Get play mode to determine how to process triggers
+    const PlayModeConfig& playModeConfig = pattern->getPlayModeConfig();
+    
+    // Process square triggers based on play mode
+    switch (playModeConfig.mode) {
+        case PLAY_FORWARD:
+        default:
+            // Forward: process from start to end
+            if (blockEndBeats < blockStartBeats) {
+                // Wrapped around loop boundary
+                processSquareTriggers(midiMessages, blockStartBeats, loopLengthBeats);
+                processSquareTriggers(midiMessages, 0.0, blockEndBeats);
+            } else {
+                processSquareTriggers(midiMessages, blockStartBeats, blockEndBeats);
+            }
+            break;
+            
+        case PLAY_BACKWARD:
+            // Backward: process from end to start (swap order)
+            if (blockEndBeats > blockStartBeats) {
+                // Wrapped around loop boundary (going backwards from near 0 to near end)
+                processSquareTriggers(midiMessages, 0.0, blockStartBeats);
+                processSquareTriggers(midiMessages, blockEndBeats, loopLengthBeats);
+            } else {
+                processSquareTriggers(midiMessages, blockEndBeats, blockStartBeats);
+            }
+            break;
+            
+        case PLAY_PENDULUM:
+            // Pendulum: direction can change mid-block, process the range we covered
+            {
+                double minPos = std::min(blockStartBeats, blockEndBeats);
+                double maxPos = std::max(blockStartBeats, blockEndBeats);
+                processSquareTriggers(midiMessages, minPos, maxPos);
+            }
+            break;
+            
+        case PLAY_PROBABILITY:
+            // Probability: may have jumped, process around current position
+            // Use a small window around the current step
+            {
+                double beatsPerStep = loopLengthBeats / std::max(1, totalSteps);
+                double stepStart = currentStepIndex * beatsPerStep;
+                double stepEnd = stepStart + beatsPerStep;
+                
+                // Only trigger if we just entered this step (compare with previous position)
+                if (blockStartBeats < stepStart || blockStartBeats >= stepEnd) {
+                    // We entered a new step this block
+                    processSquareTriggers(midiMessages, stepStart, stepEnd);
+                }
+            }
+            break;
+    }
 }
 
 //==============================================================================
@@ -387,7 +490,7 @@ void PlaybackEngine::processSquareTriggers(juce::MidiBuffer& midiMessages,
                 }
             }
             
-            int midiNote = MIDIGenerator::calculateMidiNote(*square, config, pitchOffset, pattern->getScaleConfig());
+            int midiNote = MIDIGenerator::calculateMidiNote(*square, config, pitchOffset, pattern->getActiveScale(getPositionInBars()));
             activeNotesByColor[colorId] = {midiNote, colorId, endTimeBeats};
         }
         
@@ -467,7 +570,7 @@ void PlaybackEngine::sendNoteOn(juce::MidiBuffer& midiMessages, const Square& sq
     }
     
     // Calculate MIDI note and velocity
-    int midiNote = MIDIGenerator::calculateMidiNote(square, config, pitchOffset, pattern->getScaleConfig());
+    int midiNote = MIDIGenerator::calculateMidiNote(square, config, pitchOffset, pattern->getActiveScale(getPositionInBars()));
     int velocity = MIDIGenerator::calculateVelocity(square);
     
     // Create and add note-on message
@@ -515,28 +618,17 @@ int PlaybackEngine::calculateTotalSteps() const
         return 16;  // Default
     }
     
-    // Find the finest quantization across all color channels
+    // Use 1/16 notes as the step grid for probability mode
+    // This gives a musical grid that makes jumps noticeable
+    // For a 4/4 bar, this gives 16 steps per bar
     TimeSignature timeSig = pattern->getTimeSignature();
     double beatsPerBar = timeSig.getBeatsPerBar();
-    double finestInterval = beatsPerBar;  // Start with 1 bar
     
-    for (int colorId = 0; colorId < 4; ++colorId) {
-        const ColorChannelConfig& config = pattern->getColorConfig(colorId);
-        double quantizeInterval;
-        switch (config.quantize) {
-            case Q_1_32: quantizeInterval = beatsPerBar / 32.0; break;
-            case Q_1_16: quantizeInterval = beatsPerBar / 16.0; break;
-            case Q_1_8:  quantizeInterval = beatsPerBar / 8.0;  break;
-            case Q_1_4:  quantizeInterval = beatsPerBar / 4.0;  break;
-            case Q_1_2:  quantizeInterval = beatsPerBar / 2.0;  break;
-            case Q_1_BAR: quantizeInterval = beatsPerBar;       break;
-            default:     quantizeInterval = beatsPerBar / 16.0; break;
-        }
-        finestInterval = std::min(finestInterval, quantizeInterval);
-    }
+    // 1/16 note = 1/4 of a beat in 4/4 time
+    double stepInterval = beatsPerBar / 16.0;
     
     // Calculate total steps
-    int steps = static_cast<int>(loopLengthBeats / finestInterval);
+    int steps = static_cast<int>(loopLengthBeats / stepInterval);
     return std::max(1, steps);
 }
 

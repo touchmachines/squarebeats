@@ -30,6 +30,11 @@ ScaleControls::ScaleControls(PatternModel& model)
     scaleTypeCombo.setSelectedId(static_cast<int>(patternModel.getScaleConfig().scaleType) + 1, juce::dontSendNotification);
     scaleTypeCombo.addListener(this);
     addAndMakeVisible(scaleTypeCombo);
+    
+    // Active scale label (hidden by default)
+    activeScaleLabel.setJustificationType(juce::Justification::centredLeft);
+    activeScaleLabel.setColour(juce::Label::textColourId, juce::Colour(0xff00ccff));
+    addChildComponent(activeScaleLabel);
 }
 
 ScaleControls::~ScaleControls()
@@ -47,7 +52,7 @@ void ScaleControls::resized()
 {
     auto bounds = getLocalBounds().reduced(5);
     
-    // Layout: [Root: ][combo] [Scale: ][combo]
+    // Layout: [Root: ][combo] [Scale: ][combo] [Active: label]
     int labelWidth = 45;
     int comboWidth = 55;
     int scaleComboWidth = 110;
@@ -61,6 +66,10 @@ void ScaleControls::resized()
     scaleLabel.setBounds(bounds.removeFromLeft(labelWidth));
     bounds.removeFromLeft(spacing);
     scaleTypeCombo.setBounds(bounds.removeFromLeft(scaleComboWidth));
+    
+    // Active scale label takes remaining space
+    bounds.removeFromLeft(spacing * 2);
+    activeScaleLabel.setBounds(bounds);
 }
 
 void ScaleControls::refreshFromModel()
@@ -68,6 +77,25 @@ void ScaleControls::refreshFromModel()
     const ScaleConfig& config = patternModel.getScaleConfig();
     rootNoteCombo.setSelectedId(static_cast<int>(config.rootNote) + 1, juce::dontSendNotification);
     scaleTypeCombo.setSelectedId(static_cast<int>(config.scaleType) + 1, juce::dontSendNotification);
+}
+
+void ScaleControls::setActiveScale(const ScaleConfig* activeScale)
+{
+    if (activeScale != nullptr) {
+        showingActiveScale = true;
+        currentActiveScale = *activeScale;
+        
+        juce::String text = "Playing: ";
+        text += ScaleConfig::getRootNoteName(activeScale->rootNote);
+        text += " ";
+        text += ScaleConfig::getScaleTypeName(activeScale->scaleType);
+        
+        activeScaleLabel.setText(text, juce::dontSendNotification);
+        activeScaleLabel.setVisible(true);
+    } else {
+        showingActiveScale = false;
+        activeScaleLabel.setVisible(false);
+    }
 }
 
 void ScaleControls::comboBoxChanged(juce::ComboBox* comboBox)

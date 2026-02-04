@@ -66,6 +66,25 @@ SquareBeatsAudioProcessorEditor::SquareBeatsAudioProcessorEditor (SquareBeatsAud
     );
     addAndMakeVisible(playModeControls.get());
     
+    // Create scale sequencer component (initially hidden)
+    scaleSequencer = std::make_unique<SquareBeats::ScaleSequencerComponent>(
+        audioProcessor.getPatternModel()
+    );
+    scaleSequencer->setVisible(false);
+    addAndMakeVisible(scaleSequencer.get());
+    
+    // Scale sequencer toggle button
+    scaleSeqToggle.setButtonText("Scale Seq");
+    scaleSeqToggle.setClickingTogglesState(true);
+    scaleSeqToggle.onClick = [this]() {
+        auto& scaleSeqConfig = audioProcessor.getPatternModel().getScaleSequencer();
+        scaleSeqConfig.enabled = scaleSeqToggle.getToggleState();
+        scaleSequencer->setVisible(scaleSeqConfig.enabled);
+        resized();
+        audioProcessor.getPatternModel().sendChangeMessage();
+    };
+    addAndMakeVisible(scaleSeqToggle);
+    
     // Listen to pattern model changes
     audioProcessor.getPatternModel().addChangeListener(this);
     
@@ -108,13 +127,15 @@ void SquareBeatsAudioProcessorEditor::resized()
 {
     auto bounds = getLocalBounds();
     
-    // Top bar: Loop length selector, time signature controls, scale controls, and clear all button
+    // Top bar: Loop length selector, time signature controls, scale controls, scale seq toggle, and clear all button
     auto topBar = bounds.removeFromTop(60);
     loopLengthSelector->setBounds(topBar.removeFromLeft(250));
     topBar.removeFromLeft(10); // Spacing
     timeSignatureControls->setBounds(topBar.removeFromLeft(200));
     topBar.removeFromLeft(10); // Spacing
     scaleControls->setBounds(topBar.removeFromLeft(290));
+    topBar.removeFromLeft(10); // Spacing
+    scaleSeqToggle.setBounds(topBar.removeFromLeft(70).reduced(0, 15));
     topBar.removeFromLeft(10); // Spacing
     clearAllButton.setBounds(topBar.removeFromLeft(80).reduced(0, 15));
     
@@ -128,6 +149,13 @@ void SquareBeatsAudioProcessorEditor::resized()
     controlButtons->setBounds(rightPanel.removeFromTop(170)); // Increased height for pitch seq length dropdown
     rightPanel.removeFromTop(10); // Spacing
     playModeControls->setBounds(rightPanel.removeFromTop(200)); // Play mode controls with XY pad
+    
+    // Scale sequencer overlay (when visible, takes bottom portion of main area)
+    auto& scaleSeqConfig = audioProcessor.getPatternModel().getScaleSequencer();
+    if (scaleSeqConfig.enabled && scaleSequencer->isVisible()) {
+        scaleSequencer->setBounds(bounds.removeFromBottom(120));
+        bounds.removeFromBottom(5);
+    }
     
     // Main area: Sequencing plane with pitch sequencer overlay
     sequencingPlane->setBounds(bounds);
@@ -214,6 +242,15 @@ void SquareBeatsAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadca
     {
         playModeControls->refreshFromModel();
     }
+    
+    if (scaleSequencer != nullptr)
+    {
+        scaleSequencer->refreshFromModel();
+    }
+    
+    // Update scale sequencer toggle state
+    auto& scaleSeqConfig = audioProcessor.getPatternModel().getScaleSequencer();
+    scaleSeqToggle.setToggleState(scaleSeqConfig.enabled, juce::dontSendNotification);
 }
 
 void SquareBeatsAudioProcessorEditor::timerCallback()
@@ -231,6 +268,34 @@ void SquareBeatsAudioProcessorEditor::timerCallback()
         int selectedColor = colorSelector->getSelectedColorChannel();
         float pitchSeqPosition = audioProcessor.getPlaybackEngine().getNormalizedPitchSeqPosition(selectedColor);
         pitchSequencer->setPlaybackPosition(pitchSeqPosition);
+    }
+    
+    // Update scale sequencer playback position and active scale display
+    auto& scaleSeqConfig = audioProcessor.getPatternModel().getScaleSequencer();
+    if (scaleSeqConfig.enabled)
+    {
+        // Update scale sequencer position
+        if (scaleSequencer != nullptr && scaleSequencer->isVisible())
+        {
+            float scaleSeqPosition = audioProcessor.getPlaybackEngine().getNormalizedScaleSeqPosition();
+            scaleSequencer->setPlaybackPosition(scaleSeqPosition);
+        }
+        
+        // Update active scale display in header
+        if (scaleControls != nullptr)
+        {
+            double positionBars = audioProcessor.getPlaybackEngine().getPositionInBars();
+            SquareBeats::ScaleConfig activeScale = scaleSeqConfig.getScaleAtPosition(positionBars);
+            scaleControls->setActiveScale(&activeScale);
+        }
+    }
+    else
+    {
+        // Clear active scale display when scale sequencer is disabled
+        if (scaleControls != nullptr)
+        {
+            scaleControls->setActiveScale(nullptr);
+        }
     }
 }
 

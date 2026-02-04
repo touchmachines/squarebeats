@@ -62,6 +62,16 @@ public:
     float getNormalizedPitchSeqPosition(int colorId) const;
     
     /**
+     * Get the current scale sequencer position as a normalized value (0.0 to 1.0)
+     */
+    float getNormalizedScaleSeqPosition() const;
+    
+    /**
+     * Get the current playback position in bars (for scale sequencer)
+     */
+    double getPositionInBars() const;
+    
+    /**
      * Check if playback is currently active
      */
     bool getIsPlaying() const { return isPlaying; }

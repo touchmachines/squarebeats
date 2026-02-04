@@ -328,6 +328,115 @@ struct PlayModeConfig {
 
 //==============================================================================
 /**
+ * A single segment in the scale sequence
+ */
+struct ScaleSequenceSegment {
+    RootNote rootNote;
+    ScaleType scaleType;
+    int lengthBars;  // Duration in bars (1-16)
+    
+    ScaleSequenceSegment()
+        : rootNote(ROOT_C)
+        , scaleType(SCALE_MAJOR)
+        , lengthBars(2)
+    {}
+    
+    ScaleSequenceSegment(RootNote root, ScaleType scale, int bars)
+        : rootNote(root)
+        , scaleType(scale)
+        , lengthBars(bars)
+    {}
+    
+    ScaleConfig toScaleConfig() const {
+        return ScaleConfig(rootNote, scaleType);
+    }
+};
+
+/**
+ * Scale sequencer configuration - chains multiple key/scale segments
+ */
+struct ScaleSequencerConfig {
+    bool enabled;                              // Whether scale sequencing is active
+    std::vector<ScaleSequenceSegment> segments; // The sequence of scale changes
+    
+    static constexpr int MAX_SEGMENTS = 16;    // Maximum number of segments allowed
+    
+    ScaleSequencerConfig()
+        : enabled(false)
+    {
+        // Start with one default segment
+        segments.push_back(ScaleSequenceSegment(ROOT_C, SCALE_MAJOR, 4));
+    }
+    
+    /**
+     * Get total length of the scale sequence in bars
+     */
+    int getTotalLengthBars() const {
+        int total = 0;
+        for (const auto& seg : segments) {
+            total += seg.lengthBars;
+        }
+        return total;
+    }
+    
+    /**
+     * Get the scale config at a given position in bars (wraps around)
+     * @param positionBars Position in bars from start
+     * @return The ScaleConfig active at that position
+     */
+    ScaleConfig getScaleAtPosition(double positionBars) const {
+        if (segments.empty()) {
+            return ScaleConfig();  // Default C Chromatic
+        }
+        
+        int totalBars = getTotalLengthBars();
+        if (totalBars <= 0) {
+            return segments[0].toScaleConfig();
+        }
+        
+        // Wrap position to sequence length
+        double wrappedPos = std::fmod(positionBars, static_cast<double>(totalBars));
+        if (wrappedPos < 0) wrappedPos += totalBars;
+        
+        // Find which segment we're in
+        double accumulated = 0.0;
+        for (const auto& seg : segments) {
+            accumulated += seg.lengthBars;
+            if (wrappedPos < accumulated) {
+                return seg.toScaleConfig();
+            }
+        }
+        
+        // Fallback to last segment
+        return segments.back().toScaleConfig();
+    }
+    
+    /**
+     * Get the index of the segment at a given position in bars
+     */
+    int getSegmentIndexAtPosition(double positionBars) const {
+        if (segments.empty()) return -1;
+        
+        int totalBars = getTotalLengthBars();
+        if (totalBars <= 0) return 0;
+        
+        double wrappedPos = std::fmod(positionBars, static_cast<double>(totalBars));
+        if (wrappedPos < 0) wrappedPos += totalBars;
+        
+        double accumulated = 0.0;
+        for (size_t i = 0; i < segments.size(); ++i) {
+            accumulated += segments[i].lengthBars;
+            if (wrappedPos < accumulated) {
+                return static_cast<int>(i);
+            }
+        }
+        
+        return static_cast<int>(segments.size() - 1);
+    }
+};
+
+//==============================================================================
+/**
  * Square represents a MIDI note event on the sequencing plane
  * All coordinates are normalized (0.0 to 1.0) relative to the sequencing plane
  */

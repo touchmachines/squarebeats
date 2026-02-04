@@ -123,6 +123,25 @@ public:
     const PlayModeConfig& getPlayModeConfig() const;
     
     //==============================================================================
+    // Scale sequencer configuration
+    
+    /**
+     * Get scale sequencer configuration (mutable)
+     */
+    ScaleSequencerConfig& getScaleSequencer();
+    
+    /**
+     * Get scale sequencer configuration (const)
+     */
+    const ScaleSequencerConfig& getScaleSequencer() const;
+    
+    /**
+     * Get the currently active scale (considers scale sequencer if enabled)
+     * @param positionBars Current playback position in bars
+     */
+    ScaleConfig getActiveScale(double positionBars) const;
+    
+    //==============================================================================
     // Global settings
     
     /**
@@ -162,6 +181,7 @@ private:
     std::array<ColorChannelConfig, 4> colorConfigs;
     PitchSequencer pitchSequencer;
     PlayModeConfig playModeConfig;
+    ScaleSequencerConfig scaleSequencer;
     ScaleConfig scaleConfig;
     int loopLengthBars;
     TimeSignature timeSignature;

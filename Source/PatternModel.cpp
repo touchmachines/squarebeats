@@ -200,6 +200,27 @@ const PlayModeConfig& PatternModel::getPlayModeConfig() const
 }
 
 //==============================================================================
+// Scale sequencer configuration
+
+ScaleSequencerConfig& PatternModel::getScaleSequencer()
+{
+    return scaleSequencer;
+}
+
+const ScaleSequencerConfig& PatternModel::getScaleSequencer() const
+{
+    return scaleSequencer;
+}
+
+ScaleConfig PatternModel::getActiveScale(double positionBars) const
+{
+    if (scaleSequencer.enabled && !scaleSequencer.segments.empty()) {
+        return scaleSequencer.getScaleAtPosition(positionBars);
+    }
+    return scaleConfig;
+}
+
+//==============================================================================
 // Global settings
 
 void PatternModel::setLoopLength(int bars)

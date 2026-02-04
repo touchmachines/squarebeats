@@ -12,6 +12,8 @@ namespace SquareBeats {
  * Provides two dropdown menus:
  * - Root note selection (C through B)
  * - Scale type selection (Chromatic, Major, Minor, etc.)
+ * 
+ * Can also display an "active" scale when scale sequencer is enabled
  */
 class ScaleControls : public juce::Component,
                       private juce::ComboBox::Listener
@@ -28,6 +30,12 @@ public:
      */
     void refreshFromModel();
     
+    /**
+     * Set the currently active scale (for display when scale sequencer is running)
+     * Pass nullptr to clear and show the static scale
+     */
+    void setActiveScale(const ScaleConfig* activeScale);
+    
 private:
     void comboBoxChanged(juce::ComboBox* comboBox) override;
     
@@ -38,6 +46,11 @@ private:
     
     juce::Label scaleLabel;
     juce::ComboBox scaleTypeCombo;
+    
+    // Active scale display (when scale sequencer is enabled)
+    juce::Label activeScaleLabel;
+    bool showingActiveScale = false;
+    ScaleConfig currentActiveScale;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ScaleControls)
 };

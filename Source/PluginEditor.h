@@ -20,11 +20,13 @@
  * SquareBeats Plugin Editor
  * 
  * This is the main UI component that will contain:
+ * - Logo in top left
  * - Sequencing plane for drawing squares
  * - Pitch sequencer overlay
  * - Color channel selector
- * - Configuration panels
+ * - Configuration panels (context-sensitive based on editing mode)
  * - Loop length and time signature controls
+ * - Play mode buttons in top bar
  */
 class SquareBeatsAudioProcessorEditor : public juce::AudioProcessorEditor,
                                          public SquareBeats::ColorSelectorComponent::Listener,
@@ -55,10 +57,14 @@ public:
 
 private:
     void onClearAllClicked();
+    void updateContextSensitiveControls();
     
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     SquareBeatsAudioProcessor& audioProcessor;
+    
+    // Logo image
+    juce::Image logoImage;
     
     // UI Components
     std::unique_ptr<SquareBeats::GateFlashOverlay> gateFlashOverlay;
@@ -70,7 +76,8 @@ private:
     std::unique_ptr<SquareBeats::TimeSignatureControls> timeSignatureControls;
     std::unique_ptr<SquareBeats::ScaleControls> scaleControls;
     std::unique_ptr<SquareBeats::ControlButtons> controlButtons;
-    std::unique_ptr<SquareBeats::PlayModeControls> playModeControls;
+    std::unique_ptr<SquareBeats::PlayModeButtons> playModeButtons;  // New: buttons in top bar
+    std::unique_ptr<SquareBeats::PlayModeXYPad> playModeXYPad;      // New: XY pad in side panel
     std::unique_ptr<SquareBeats::ScaleSequencerComponent> scaleSequencer;
     
     // Scale sequencer toggle button

@@ -9,11 +9,9 @@ namespace SquareBeats {
 /**
  * ColorConfigPanel - Configuration panel for a color channel
  * 
- * Displays and allows editing of:
- * - Quantization value (dropdown)
- * - High note (MIDI note number)
- * - Low note (MIDI note number)
- * - MIDI channel (1-16)
+ * Context-sensitive panel that shows:
+ * - In Square mode: Quantization, High/Low note, MIDI channel
+ * - In Pitch Sequencer mode: Pitch range (semitones), Pitch Len
  */
 class ColorConfigPanel : public juce::Component
 {
@@ -46,7 +44,10 @@ private:
     PatternModel& patternModel;
     int currentColorChannel;
     
-    // UI Components
+    // Section header label
+    juce::Label sectionHeader;
+    
+    // Square mode UI Components
     juce::Label quantizationLabel;
     juce::ComboBox quantizationCombo;
     
@@ -65,6 +66,11 @@ private:
      * Initialize UI components
      */
     void setupComponents();
+    
+    /**
+     * Update visibility of controls based on editing mode
+     */
+    void updateControlVisibility();
     
     /**
      * Handle quantization combo box change

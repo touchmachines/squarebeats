@@ -34,6 +34,12 @@ juce_add_plugin(SquareBeats
     VST3_CATEGORIES "Instrument|Generator"
 )
 
+# Add binary resources (logo image)
+juce_add_binary_data(SquareBeatsData
+    SOURCES
+        images/logo.png
+)
+
 # Add source files
 target_sources(SquareBeats
     PRIVATE
@@ -84,6 +90,7 @@ target_sources(SquareBeats
 # Link JUCE modules
 target_link_libraries(SquareBeats
     PRIVATE
+        SquareBeatsData
         juce::juce_audio_basics
         juce::juce_audio_devices
         juce::juce_audio_formats

@@ -74,7 +74,175 @@ void XYPadComponent::updateFromMouse(const juce::Point<float>& pos)
 }
 
 //==============================================================================
-// PlayModeControls Implementation
+// PlayModeButtons Implementation
+//==============================================================================
+
+PlayModeButtons::PlayModeButtons(PatternModel& model)
+    : patternModel(model)
+{
+    setupComponents();
+    refreshFromModel();
+}
+
+PlayModeButtons::~PlayModeButtons()
+{
+}
+
+void PlayModeButtons::paint(juce::Graphics& g)
+{
+    g.fillAll(juce::Colour(0xff2a2a2a));
+}
+
+void PlayModeButtons::resized()
+{
+    auto bounds = getLocalBounds().reduced(2);
+    int buttonWidth = bounds.getWidth() / 4;
+    
+    forwardButton.setBounds(bounds.removeFromLeft(buttonWidth).reduced(2, 0));
+    backwardButton.setBounds(bounds.removeFromLeft(buttonWidth).reduced(2, 0));
+    pendulumButton.setBounds(bounds.removeFromLeft(buttonWidth).reduced(2, 0));
+    probabilityButton.setBounds(bounds.reduced(2, 0));
+}
+
+void PlayModeButtons::refreshFromModel()
+{
+    updateButtonStates();
+}
+
+void PlayModeButtons::setupComponents()
+{
+    forwardButton.setButtonText("-->");
+    forwardButton.onClick = [this]() { onModeButtonClicked(PLAY_FORWARD); };
+    addAndMakeVisible(forwardButton);
+    
+    backwardButton.setButtonText("<--");
+    backwardButton.onClick = [this]() { onModeButtonClicked(PLAY_BACKWARD); };
+    addAndMakeVisible(backwardButton);
+    
+    pendulumButton.setButtonText("<-->");
+    pendulumButton.onClick = [this]() { onModeButtonClicked(PLAY_PENDULUM); };
+    addAndMakeVisible(pendulumButton);
+    
+    probabilityButton.setButtonText("--?>");
+    probabilityButton.onClick = [this]() { onModeButtonClicked(PLAY_PROBABILITY); };
+    addAndMakeVisible(probabilityButton);
+}
+
+void PlayModeButtons::onModeButtonClicked(PlayMode mode)
+{
+    auto& config = patternModel.getPlayModeConfig();
+    bool wasProbability = (config.mode == PLAY_PROBABILITY);
+    
+    config.mode = mode;
+    config.pendulumForward = true;
+    
+    updateButtonStates();
+    patternModel.sendChangeMessage();
+    
+    // Notify if probability mode changed
+    bool isProbability = (mode == PLAY_PROBABILITY);
+    if (onProbabilityModeChanged && wasProbability != isProbability)
+    {
+        onProbabilityModeChanged(isProbability);
+    }
+}
+
+void PlayModeButtons::updateButtonStates()
+{
+    auto& config = patternModel.getPlayModeConfig();
+    
+    juce::Colour activeColour(0xff4488ff);
+    juce::Colour inactiveColour = getLookAndFeel().findColour(juce::TextButton::buttonColourId);
+    
+    forwardButton.setColour(juce::TextButton::buttonColourId, 
+        config.mode == PLAY_FORWARD ? activeColour : inactiveColour);
+    backwardButton.setColour(juce::TextButton::buttonColourId, 
+        config.mode == PLAY_BACKWARD ? activeColour : inactiveColour);
+    pendulumButton.setColour(juce::TextButton::buttonColourId, 
+        config.mode == PLAY_PENDULUM ? activeColour : inactiveColour);
+    probabilityButton.setColour(juce::TextButton::buttonColourId, 
+        config.mode == PLAY_PROBABILITY ? activeColour : inactiveColour);
+}
+
+//==============================================================================
+// PlayModeXYPad Implementation
+//==============================================================================
+
+PlayModeXYPad::PlayModeXYPad(PatternModel& model)
+    : patternModel(model)
+{
+    setupComponents();
+    refreshFromModel();
+}
+
+PlayModeXYPad::~PlayModeXYPad()
+{
+}
+
+void PlayModeXYPad::paint(juce::Graphics& g)
+{
+    g.fillAll(juce::Colour(0xff2a2a2a));
+}
+
+void PlayModeXYPad::resized()
+{
+    auto bounds = getLocalBounds().reduced(5);
+    
+    // Label at top
+    xyPadLabel.setBounds(bounds.removeFromTop(20));
+    bounds.removeFromTop(2);
+    
+    // Y-axis label on left
+    auto xyArea = bounds.removeFromTop(140);
+    yAxisLabel.setBounds(xyArea.removeFromLeft(20));
+    
+    // XY Pad
+    xyPad->setBounds(xyArea.reduced(2));
+    
+    bounds.removeFromTop(2);
+    
+    // X-axis label below
+    xAxisLabel.setBounds(bounds.removeFromTop(16).withTrimmedLeft(20));
+}
+
+void PlayModeXYPad::refreshFromModel()
+{
+    auto& config = patternModel.getPlayModeConfig();
+    xyPad->setXValue(config.stepJumpSize);
+    xyPad->setYValue(config.probability);
+}
+
+void PlayModeXYPad::setupComponents()
+{
+    xyPad = std::make_unique<XYPadComponent>();
+    xyPad->onValueChanged = [this](float x, float y) { onXYPadChanged(x, y); };
+    addAndMakeVisible(xyPad.get());
+    
+    xyPadLabel.setText("PROBABILITY XY PAD", juce::dontSendNotification);
+    xyPadLabel.setJustificationType(juce::Justification::centred);
+    xyPadLabel.setFont(juce::Font(12.0f, juce::Font::bold));
+    addAndMakeVisible(xyPadLabel);
+    
+    xAxisLabel.setText("Step Jump Size", juce::dontSendNotification);
+    xAxisLabel.setJustificationType(juce::Justification::centred);
+    xAxisLabel.setFont(juce::Font(10.0f));
+    addAndMakeVisible(xAxisLabel);
+    
+    yAxisLabel.setText("Prob%", juce::dontSendNotification);
+    yAxisLabel.setJustificationType(juce::Justification::centred);
+    yAxisLabel.setFont(juce::Font(9.0f));
+    addAndMakeVisible(yAxisLabel);
+}
+
+void PlayModeXYPad::onXYPadChanged(float x, float y)
+{
+    auto& config = patternModel.getPlayModeConfig();
+    config.stepJumpSize = x;
+    config.probability = y;
+}
+
+//==============================================================================
+// PlayModeControls Implementation (Legacy - kept for compatibility)
 //==============================================================================
 
 PlayModeControls::PlayModeControls(PatternModel& model)

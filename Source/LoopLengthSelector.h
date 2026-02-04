@@ -9,9 +9,8 @@ namespace SquareBeats {
 /**
  * LoopLengthSelector - UI for selecting loop length
  * 
- * Displays buttons for 1, 2, and 4 bar loop lengths.
- * Highlights the currently selected length and updates the PatternModel
- * when the selection changes.
+ * Displays a dropdown for selecting loop length from 1-64 bars.
+ * Updates the PatternModel when the selection changes.
  */
 class LoopLengthSelector : public juce::Component
 {
@@ -23,7 +22,6 @@ public:
     //==============================================================================
     void paint(juce::Graphics& g) override;
     void resized() override;
-    void mouseDown(const juce::MouseEvent& event) override;
     
     //==============================================================================
     /**
@@ -34,20 +32,14 @@ public:
 private:
     PatternModel& patternModel;
     
-    // Available loop lengths
-    static constexpr int NUM_LOOP_OPTIONS = 3;
-    static constexpr int LOOP_OPTIONS[NUM_LOOP_OPTIONS] = { 1, 2, 4 };
+    // UI Components
+    juce::Label loopLengthLabel;
+    juce::ComboBox loopLengthCombo;
     
     /**
-     * Get the bounds for a specific loop length button
+     * Handle loop length combo box change
      */
-    juce::Rectangle<int> getButtonBounds(int buttonIndex) const;
-    
-    /**
-     * Find which button was clicked at the given position
-     * @return Button index (0-2) or -1 if no button was clicked
-     */
-    int findButtonAt(juce::Point<int> position) const;
+    void onLoopLengthChanged();
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LoopLengthSelector)
 };

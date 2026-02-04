@@ -6,6 +6,23 @@ namespace SquareBeats {
 LoopLengthSelector::LoopLengthSelector(PatternModel& model)
     : patternModel(model)
 {
+    // Setup label
+    loopLengthLabel.setText("Loop Length:", juce::dontSendNotification);
+    loopLengthLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    loopLengthLabel.setJustificationType(juce::Justification::centredRight);
+    addAndMakeVisible(loopLengthLabel);
+    
+    // Setup combo box with 1-64 bars
+    for (int i = 1; i <= 64; ++i)
+    {
+        juce::String label = (i == 1) ? "1 Bar" : juce::String(i) + " Bars";
+        loopLengthCombo.addItem(label, i);
+    }
+    loopLengthCombo.setSelectedId(1); // Default to 1 bar
+    loopLengthCombo.onChange = [this]() { onLoopLengthChanged(); };
+    addAndMakeVisible(loopLengthCombo);
+    
+    refreshFromModel();
 }
 
 LoopLengthSelector::~LoopLengthSelector()
@@ -15,101 +32,36 @@ LoopLengthSelector::~LoopLengthSelector()
 //==============================================================================
 void LoopLengthSelector::paint(juce::Graphics& g)
 {
-    auto bounds = getLocalBounds();
-    
-    // Draw background
     g.fillAll(juce::Colour(0xff2a2a2a));
-    
-    int currentLoopLength = patternModel.getLoopLength();
-    
-    // Draw each button
-    for (int i = 0; i < NUM_LOOP_OPTIONS; ++i)
-    {
-        auto buttonBounds = getButtonBounds(i);
-        int loopLength = LOOP_OPTIONS[i];
-        
-        // Check if this is the selected loop length
-        bool isSelected = (loopLength == currentLoopLength);
-        
-        // Fill button
-        if (isSelected)
-        {
-            g.setColour(juce::Colour(0xff4a4a4a));
-        }
-        else
-        {
-            g.setColour(juce::Colour(0xff333333));
-        }
-        g.fillRect(buttonBounds.reduced(2));
-        
-        // Draw border
-        if (isSelected)
-        {
-            g.setColour(juce::Colours::white);
-            g.drawRect(buttonBounds.reduced(2), 2);
-        }
-        else
-        {
-            g.setColour(juce::Colour(0xff444444));
-            g.drawRect(buttonBounds.reduced(2), 1);
-        }
-        
-        // Draw text
-        g.setColour(juce::Colours::white);
-        g.setFont(14.0f);
-        juce::String text = juce::String(loopLength) + (loopLength == 1 ? " Bar" : " Bars");
-        g.drawText(text, buttonBounds.reduced(2), juce::Justification::centred);
-    }
 }
 
 void LoopLengthSelector::resized()
 {
-    // Nothing to do - button bounds are calculated dynamically in paint()
-}
-
-void LoopLengthSelector::mouseDown(const juce::MouseEvent& event)
-{
-    int clickedButton = findButtonAt(event.getPosition());
+    auto bounds = getLocalBounds().reduced(5);
     
-    if (clickedButton >= 0 && clickedButton < NUM_LOOP_OPTIONS)
-    {
-        int newLoopLength = LOOP_OPTIONS[clickedButton];
-        patternModel.setLoopLength(newLoopLength);
-        repaint();
-    }
+    // Label on left, combo on right
+    loopLengthLabel.setBounds(bounds.removeFromLeft(90));
+    bounds.removeFromLeft(5);
+    loopLengthCombo.setBounds(bounds);
 }
 
 //==============================================================================
 void LoopLengthSelector::refreshFromModel()
 {
-    repaint();
+    int currentLoopLength = patternModel.getLoopLength();
+    // Clamp to valid range
+    currentLoopLength = juce::jlimit(1, 64, currentLoopLength);
+    loopLengthCombo.setSelectedId(currentLoopLength, juce::dontSendNotification);
 }
 
 //==============================================================================
-juce::Rectangle<int> LoopLengthSelector::getButtonBounds(int buttonIndex) const
+void LoopLengthSelector::onLoopLengthChanged()
 {
-    auto bounds = getLocalBounds();
-    int buttonWidth = bounds.getWidth() / NUM_LOOP_OPTIONS;
-    
-    return juce::Rectangle<int>(
-        buttonIndex * buttonWidth,
-        0,
-        buttonWidth,
-        bounds.getHeight()
-    );
-}
-
-int LoopLengthSelector::findButtonAt(juce::Point<int> position) const
-{
-    for (int i = 0; i < NUM_LOOP_OPTIONS; ++i)
+    int newLoopLength = loopLengthCombo.getSelectedId();
+    if (newLoopLength >= 1 && newLoopLength <= 64)
     {
-        if (getButtonBounds(i).contains(position))
-        {
-            return i;
-        }
+        patternModel.setLoopLength(newLoopLength);
     }
-    
-    return -1;
 }
 
 } // namespace SquareBeats

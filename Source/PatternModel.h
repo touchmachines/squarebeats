@@ -145,7 +145,7 @@ public:
     // Global settings
     
     /**
-     * Set loop length in bars (1, 2, or 4)
+     * Set loop length in bars (1-64)
      */
     void setLoopLength(int bars);
     

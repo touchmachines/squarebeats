@@ -1,10 +1,14 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "BinaryData.h"
 
 //==============================================================================
 SquareBeatsAudioProcessorEditor::SquareBeatsAudioProcessorEditor (SquareBeatsAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
+    // Load the logo image from binary data
+    logoImage = juce::ImageCache::getFromMemory(BinaryData::logo_png, BinaryData::logo_pngSize);
+    
     // Create the gate flash overlay (behind everything else)
     gateFlashOverlay = std::make_unique<SquareBeats::GateFlashOverlay>(
         audioProcessor.getPatternModel(),
@@ -39,7 +43,7 @@ SquareBeatsAudioProcessorEditor::SquareBeatsAudioProcessorEditor (SquareBeatsAud
     );
     addAndMakeVisible(colorConfigPanel.get());
     
-    // Create loop length selector
+    // Create loop length selector (now a dropdown)
     loopLengthSelector = std::make_unique<SquareBeats::LoopLengthSelector>(
         audioProcessor.getPatternModel()
     );
@@ -69,11 +73,20 @@ SquareBeatsAudioProcessorEditor::SquareBeatsAudioProcessorEditor (SquareBeatsAud
     controlButtons->addListener(this);
     addAndMakeVisible(controlButtons.get());
     
-    // Create play mode controls
-    playModeControls = std::make_unique<SquareBeats::PlayModeControls>(
+    // Create play mode buttons (for top bar)
+    playModeButtons = std::make_unique<SquareBeats::PlayModeButtons>(
         audioProcessor.getPatternModel()
     );
-    addAndMakeVisible(playModeControls.get());
+    playModeButtons->onProbabilityModeChanged = [this](bool /*isProbability*/) {
+        updateContextSensitiveControls();
+    };
+    addAndMakeVisible(playModeButtons.get());
+    
+    // Create play mode XY pad (for side panel, only visible in probability mode)
+    playModeXYPad = std::make_unique<SquareBeats::PlayModeXYPad>(
+        audioProcessor.getPatternModel()
+    );
+    addAndMakeVisible(playModeXYPad.get());
     
     // Create scale sequencer component (initially hidden)
     scaleSequencer = std::make_unique<SquareBeats::ScaleSequencerComponent>(
@@ -113,6 +126,9 @@ SquareBeatsAudioProcessorEditor::SquareBeatsAudioProcessorEditor (SquareBeatsAud
     setSize (1000, 700);
     setResizable(true, true);
     setResizeLimits(800, 600, 2000, 1500);  // Min: 800x600, Max: 2000x1500
+    
+    // Initial context-sensitive controls update
+    updateContextSensitiveControls();
 }
 
 SquareBeatsAudioProcessorEditor::~SquareBeatsAudioProcessorEditor()
@@ -139,15 +155,35 @@ void SquareBeatsAudioProcessorEditor::paint (juce::Graphics& g)
 {
     // Fill the background
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
+    
+    // Draw the logo in the top left corner
+    if (logoImage.isValid())
+    {
+        int logoHeight = 50;  // Fit within top bar
+        int logoWidth = static_cast<int>(logoImage.getWidth() * (static_cast<float>(logoHeight) / logoImage.getHeight()));
+        
+        // Draw with high quality scaling
+        g.drawImage(logoImage, 
+                    5, 5, logoWidth, logoHeight,  // Destination rectangle
+                    0, 0, logoImage.getWidth(), logoImage.getHeight(),  // Source rectangle
+                    false);  // Don't fill alpha with background
+    }
 }
 
 void SquareBeatsAudioProcessorEditor::resized()
 {
     auto bounds = getLocalBounds();
     
-    // Top bar: Loop length selector, time signature controls, scale controls, scale seq toggle, and clear all button
+    // Top bar: Logo, Loop length, time signature, scale controls, scale seq toggle, clear all, and play mode buttons
     auto topBar = bounds.removeFromTop(60);
-    loopLengthSelector->setBounds(topBar.removeFromLeft(250));
+    
+    // Logo on the far left (maintain aspect ratio, fit to height)
+    int logoHeight = topBar.getHeight() - 10;
+    int logoWidth = logoImage.isValid() ? 
+        static_cast<int>(logoImage.getWidth() * (static_cast<float>(logoHeight) / logoImage.getHeight())) : 60;
+    topBar.removeFromLeft(logoWidth + 10);  // Reserve space for logo + padding
+    
+    loopLengthSelector->setBounds(topBar.removeFromLeft(200));
     topBar.removeFromLeft(10); // Spacing
     timeSignatureControls->setBounds(topBar.removeFromLeft(200));
     topBar.removeFromLeft(10); // Spacing
@@ -156,17 +192,29 @@ void SquareBeatsAudioProcessorEditor::resized()
     scaleSeqToggle.setBounds(topBar.removeFromLeft(70).reduced(0, 15));
     topBar.removeFromLeft(10); // Spacing
     clearAllButton.setBounds(topBar.removeFromLeft(80).reduced(0, 15));
+    topBar.removeFromLeft(10); // Spacing
+    // Play mode buttons at the end of top bar
+    playModeButtons->setBounds(topBar.removeFromRight(200).reduced(0, 10));
     
-    // Right panel: Color selector, config panel, and control buttons
+    // Right panel: Color selector, config panel, control buttons, and context-sensitive XY pad
     auto rightPanel = bounds.removeFromRight(250);
     
     colorSelector->setBounds(rightPanel.removeFromTop(50));
     rightPanel.removeFromTop(10); // Spacing
+    
+    // Context-sensitive: Show either color config (square mode) or pitch config (pitch mode)
     colorConfigPanel->setBounds(rightPanel.removeFromTop(200));
+    
     rightPanel.removeFromTop(10); // Spacing
-    controlButtons->setBounds(rightPanel.removeFromTop(170)); // Increased height for pitch seq length dropdown
-    rightPanel.removeFromTop(10); // Spacing
-    playModeControls->setBounds(rightPanel.removeFromTop(200)); // Play mode controls with XY pad
+    controlButtons->setBounds(rightPanel.removeFromTop(170));
+    
+    // Show XY pad only in probability mode
+    auto& playModeConfig = audioProcessor.getPatternModel().getPlayModeConfig();
+    if (playModeConfig.mode == SquareBeats::PLAY_PROBABILITY)
+    {
+        rightPanel.removeFromTop(10); // Spacing
+        playModeXYPad->setBounds(rightPanel.removeFromTop(180));
+    }
     
     // Scale sequencer overlay (when visible, takes bottom portion of main area)
     auto& scaleSeqConfig = audioProcessor.getPatternModel().getScaleSequencer();
@@ -257,9 +305,14 @@ void SquareBeatsAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadca
         controlButtons->refreshFromModel();
     }
     
-    if (playModeControls != nullptr)
+    if (playModeButtons != nullptr)
     {
-        playModeControls->refreshFromModel();
+        playModeButtons->refreshFromModel();
+    }
+    
+    if (playModeXYPad != nullptr)
+    {
+        playModeXYPad->refreshFromModel();
     }
     
     if (scaleSequencer != nullptr)
@@ -276,6 +329,9 @@ void SquareBeatsAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadca
     {
         scaleControls->setControlsEnabled(!scaleSeqConfig.enabled);
     }
+    
+    // Update context-sensitive controls
+    updateContextSensitiveControls();
 }
 
 void SquareBeatsAudioProcessorEditor::timerCallback()
@@ -365,4 +421,20 @@ void SquareBeatsAudioProcessorEditor::onClearAllClicked()
     
     // Trigger UI update
     patternModel.sendChangeMessage();
+}
+
+void SquareBeatsAudioProcessorEditor::updateContextSensitiveControls()
+{
+    // Show/hide XY pad based on probability mode
+    auto& playModeConfig = audioProcessor.getPatternModel().getPlayModeConfig();
+    bool showXYPad = (playModeConfig.mode == SquareBeats::PLAY_PROBABILITY);
+    
+    if (playModeXYPad != nullptr)
+    {
+        playModeXYPad->setVisible(showXYPad);
+    }
+    
+    // Trigger layout update
+    resized();
+    repaint();
 }

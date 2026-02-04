@@ -38,11 +38,77 @@ private:
 
 //==============================================================================
 /**
- * PlayModeControls - Play mode selector with XY pad for probability mode
+ * PlayModeButtons - Compact play mode selector buttons for the top bar
  * 
- * Provides:
- * - 4 play mode buttons: Forward, Backward, Pendulum, Probability
- * - XY pad (visible only in probability mode) for step jump size and probability
+ * Provides 4 play mode buttons: Forward, Backward, Pendulum, Probability
+ * Designed to be placed in the top bar alongside other controls.
+ */
+class PlayModeButtons : public juce::Component
+{
+public:
+    PlayModeButtons(PatternModel& model);
+    ~PlayModeButtons() override;
+    
+    void paint(juce::Graphics& g) override;
+    void resized() override;
+    
+    void refreshFromModel();
+    
+    // Callback when probability mode is selected (to show/hide XY pad)
+    std::function<void(bool)> onProbabilityModeChanged;
+
+private:
+    PatternModel& patternModel;
+    
+    juce::TextButton forwardButton;
+    juce::TextButton backwardButton;
+    juce::TextButton pendulumButton;
+    juce::TextButton probabilityButton;
+    
+    void setupComponents();
+    void onModeButtonClicked(PlayMode mode);
+    void updateButtonStates();
+    
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayModeButtons)
+};
+
+//==============================================================================
+/**
+ * PlayModeXYPad - XY pad panel for probability mode parameters
+ * 
+ * Shows the XY pad for controlling step jump size and probability.
+ * Should only be visible when probability mode is active.
+ */
+class PlayModeXYPad : public juce::Component
+{
+public:
+    PlayModeXYPad(PatternModel& model);
+    ~PlayModeXYPad() override;
+    
+    void paint(juce::Graphics& g) override;
+    void resized() override;
+    
+    void refreshFromModel();
+
+private:
+    PatternModel& patternModel;
+    
+    std::unique_ptr<XYPadComponent> xyPad;
+    juce::Label xyPadLabel;
+    juce::Label xAxisLabel;
+    juce::Label yAxisLabel;
+    
+    void setupComponents();
+    void onXYPadChanged(float x, float y);
+    
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayModeXYPad)
+};
+
+//==============================================================================
+/**
+ * PlayModeControls - Legacy combined component (kept for compatibility)
+ * 
+ * Now delegates to PlayModeButtons and PlayModeXYPad internally.
  */
 class PlayModeControls : public juce::Component
 {

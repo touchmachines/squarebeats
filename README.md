@@ -251,7 +251,7 @@ cp -r "build/SquareBeats_artefacts/Release/VST3/SquareBeats.vst3" "~/Library/Aud
 8. **Pitch Seq Length**: Use the "Pitch Len:" dropdown to set each color's pitch sequencer loop length (1-64 bars)
 9. **Scale Selection**: Choose root note and scale type to constrain notes to a musical scale
 10. **Scale Sequencer**: Click "Scale Seq" to enable the scale sequencer. When enabled, the Root/Scale dropdowns become disabled and display the currently playing scale in real-time. Add segments with "+", click segments to edit key/scale/duration, drag edges to resize. Click "Scale Seq" again to disable and return to manual scale control.
-11. **Play Modes**: Select playback direction (Forward, Backward, Pendulum, or Probability). In Probability mode, use the XY pad to set step jump size (X) and probability (Y).
+11. **Play Modes**: Select playback direction from the top bar (Forward, Backward, Pendulum, or Probability). In Probability mode, an XY pad appears in the side panel to set step jump size (X) and probability (Y).
 12. **Start Playback**: Press play in your DAW to hear your pattern
 
 For detailed testing instructions, see [BUILD_AND_TEST.md](BUILD_AND_TEST.md)
@@ -280,18 +280,19 @@ For detailed testing instructions, see [BUILD_AND_TEST.md](BUILD_AND_TEST.md)
   - **Backward (<--)**: Reverse playback
   - **Pendulum (<-->)**: Bounces back and forth
   - **Probability (--?>)**: Random step jumps with configurable step size and probability via XY pad
-- **Loop Lengths**: 1, 2, or 4 bar patterns (controls playback speed, not square positions)
+- **Loop Lengths**: 1-64 bar patterns (controls playback speed, not square positions)
 - **Time Signatures**: Support for various time signatures (1-16 numerator, 1/2/4/8/16 denominator)
 - **Preset Support**: Full state saving/loading through DAW preset system
 
 ### User Interface
 - **Resizable Window**: 800x600 minimum, 2000x1500 maximum
 - **Real-time Playback Indicators**: Visual feedback for main sequencer, pitch sequencer, and scale sequencer positions
-- **Color Configuration Panel**: Per-color settings for quantization, pitch range, and MIDI channel
-- **Loop Length Selector**: Quick switching between 1, 2, and 4 bar loops
+- **Color Configuration Panel**: Per-color settings for quantization, pitch range, and MIDI channel (context-sensitive header changes based on editing mode)
+- **Loop Length Selector**: Dropdown for selecting loop length from 1-64 bars
 - **Scale Controls**: Root note and scale type selection (Chromatic, Major, Minor, Harmonic Minor, Melodic Minor, Pentatonic Major/Minor, Blues, Dorian, Phrygian, Lydian, Mixolydian, Locrian, Whole Tone, Diminished). When scale sequencer is enabled, these controls are disabled and display the currently playing scale.
 - **Scale Sequencer Panel**: Timeline editor for chaining key/scale changes. Click segments to edit, drag edges to resize, click "+" to add new segments. Toggle with "Scale Seq" button.
-- **Play Mode Controls**: Four mode buttons with XY pad for probability mode parameters
+- **Play Mode Buttons**: Located in top bar for easy access - Forward, Backward, Pendulum, or Probability modes
+- **Probability XY Pad**: Appears in side panel only when Probability mode is selected, for controlling step jump size and probability
 - **Pitch Sequencer Length**: Per-color dropdown for 1-64 bar pitch sequencer loops
 - **Time Signature Controls**: Easy time signature configuration
 - **Clear All Button**: Remove all squares and pitch waveforms from all colors (top bar)

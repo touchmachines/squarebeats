@@ -32,7 +32,14 @@ void ColorConfigPanel::resized()
     int labelWidth = 100;
     int spacing = 5;
     
-    // Quantization row
+    // Section header
+    auto& pitchSeq = patternModel.getPitchSequencer();
+    sectionHeader.setText(pitchSeq.editingPitch ? "PITCH SEQUENCER" : "NOTE SETTINGS", 
+                          juce::dontSendNotification);
+    sectionHeader.setBounds(bounds.removeFromTop(24));
+    bounds.removeFromTop(spacing);
+    
+    // Quantization row (always visible)
     auto quantRow = bounds.removeFromTop(rowHeight);
     quantizationLabel.setBounds(quantRow.removeFromLeft(labelWidth));
     quantRow.removeFromLeft(spacing);
@@ -82,6 +89,23 @@ void ColorConfigPanel::setColorChannel(int colorChannelId)
 void ColorConfigPanel::refreshFromModel()
 {
     const auto& config = patternModel.getColorConfig(currentColorChannel);
+    auto& pitchSeq = patternModel.getPitchSequencer();
+    
+    // Update section header based on mode
+    sectionHeader.setText(pitchSeq.editingPitch ? "PITCH SEQUENCER" : "NOTE SETTINGS", 
+                          juce::dontSendNotification);
+    
+    // Update labels based on mode
+    if (pitchSeq.editingPitch)
+    {
+        highNoteLabel.setText("High Pitch:", juce::dontSendNotification);
+        lowNoteLabel.setText("Low Pitch:", juce::dontSendNotification);
+    }
+    else
+    {
+        highNoteLabel.setText("High Note:", juce::dontSendNotification);
+        lowNoteLabel.setText("Low Note:", juce::dontSendNotification);
+    }
     
     // Update quantization combo
     switch (config.quantize)
@@ -104,11 +128,20 @@ void ColorConfigPanel::refreshFromModel()
     
     // Update MIDI channel combo
     midiChannelCombo.setSelectedId(config.midiChannel, juce::dontSendNotification);
+    
+    updateControlVisibility();
 }
 
 //==============================================================================
 void ColorConfigPanel::setupComponents()
 {
+    // Section header
+    sectionHeader.setText("NOTE SETTINGS", juce::dontSendNotification);
+    sectionHeader.setColour(juce::Label::textColourId, juce::Colours::white);
+    sectionHeader.setFont(juce::Font(14.0f, juce::Font::bold));
+    sectionHeader.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(sectionHeader);
+    
     // Quantization label and combo
     quantizationLabel.setText("Quantization:", juce::dontSendNotification);
     quantizationLabel.setColour(juce::Label::textColourId, juce::Colours::white);
@@ -170,6 +203,13 @@ void ColorConfigPanel::setupComponents()
     midiChannelCombo.setSelectedId(1); // Default to channel 1
     midiChannelCombo.onChange = [this]() { onMidiChannelChanged(); };
     addAndMakeVisible(midiChannelCombo);
+}
+
+//==============================================================================
+void ColorConfigPanel::updateControlVisibility()
+{
+    // All controls are always visible, but labels change based on mode
+    // This keeps the UI consistent and avoids jarring layout changes
 }
 
 //==============================================================================

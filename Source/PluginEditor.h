@@ -11,6 +11,7 @@
 #include "ScaleControls.h"
 #include "ControlButtons.h"
 #include "PitchSequencerComponent.h"
+#include "PlayModeControls.h"
 
 //==============================================================================
 /**
@@ -66,6 +67,7 @@ private:
     std::unique_ptr<SquareBeats::TimeSignatureControls> timeSignatureControls;
     std::unique_ptr<SquareBeats::ScaleControls> scaleControls;
     std::unique_ptr<SquareBeats::ControlButtons> controlButtons;
+    std::unique_ptr<SquareBeats::PlayModeControls> playModeControls;
     
     // Top bar clear all button
     juce::TextButton clearAllButton;

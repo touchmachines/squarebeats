@@ -101,6 +101,8 @@ private:
     int selectedColorChannel; // Currently selected color channel
     float playbackPosition;  // Current playback position (0.0 to 1.0)
     bool isDrawing;          // True when user is actively drawing
+    float lastNormalizedX;   // Last recorded X position for interpolation
+    float lastPitchOffset;   // Last recorded pitch offset for interpolation
     
     /**
      * Record a pitch offset at the given normalized position

@@ -60,6 +60,12 @@ SquareBeatsAudioProcessorEditor::SquareBeatsAudioProcessorEditor (SquareBeatsAud
     controlButtons->addListener(this);
     addAndMakeVisible(controlButtons.get());
     
+    // Create play mode controls
+    playModeControls = std::make_unique<SquareBeats::PlayModeControls>(
+        audioProcessor.getPatternModel()
+    );
+    addAndMakeVisible(playModeControls.get());
+    
     // Listen to pattern model changes
     audioProcessor.getPatternModel().addChangeListener(this);
     
@@ -120,6 +126,8 @@ void SquareBeatsAudioProcessorEditor::resized()
     colorConfigPanel->setBounds(rightPanel.removeFromTop(200));
     rightPanel.removeFromTop(10); // Spacing
     controlButtons->setBounds(rightPanel.removeFromTop(170)); // Increased height for pitch seq length dropdown
+    rightPanel.removeFromTop(10); // Spacing
+    playModeControls->setBounds(rightPanel.removeFromTop(200)); // Play mode controls with XY pad
     
     // Main area: Sequencing plane with pitch sequencer overlay
     sequencingPlane->setBounds(bounds);
@@ -200,6 +208,11 @@ void SquareBeatsAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadca
     if (controlButtons != nullptr)
     {
         controlButtons->refreshFromModel();
+    }
+    
+    if (playModeControls != nullptr)
+    {
+        playModeControls->refreshFromModel();
     }
 }
 

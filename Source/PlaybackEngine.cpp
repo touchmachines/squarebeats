@@ -12,6 +12,9 @@ PlaybackEngine::PlaybackEngine()
     , isPlaying(false)
     , sampleRate(44100.0)
     , bpm(120.0)
+    , currentStepIndex(0)
+    , totalSteps(16)
+    , pendulumForward(true)
 {
 }
 
@@ -25,6 +28,7 @@ void PlaybackEngine::setPatternModel(PatternModel* model)
         TimeSignature timeSig = pattern->getTimeSignature();
         int loopBars = pattern->getLoopLength();
         loopLengthBeats = loopBars * timeSig.getBeatsPerBar();
+        totalSteps = calculateTotalSteps();
     }
 }
 
@@ -58,6 +62,10 @@ void PlaybackEngine::handleTransportChange(bool playing, double sr, double tempo
         // Note: In real usage, this buffer would need to be processed
         // For now, we just clear the active notes
         activeNotesByColor.clear();
+        
+        // Reset step position
+        currentStepIndex = 0;
+        pendulumForward = true;
     }
     
     // Update current position from host
@@ -91,10 +99,88 @@ void PlaybackEngine::updatePlaybackPosition(int numSamples)
     // Advance absolute position (for pitch sequencer - never wraps to main loop)
     absolutePositionBeats += beatsElapsed;
     
-    // Advance main loop position
-    currentPositionBeats += beatsElapsed;
+    // Get play mode configuration
+    const PlayModeConfig& playModeConfig = pattern->getPlayModeConfig();
     
-    // Handle loop boundary for main sequencer only
+    // Calculate step duration
+    totalSteps = calculateTotalSteps();
+    double beatsPerStep = loopLengthBeats / totalSteps;
+    
+    // Track previous step to detect step changes
+    int previousStep = currentStepIndex;
+    
+    // Advance position based on play mode
+    switch (playModeConfig.mode) {
+        case PLAY_FORWARD:
+        default:
+            currentPositionBeats += beatsElapsed;
+            if (loopLengthBeats > 0.0 && currentPositionBeats >= loopLengthBeats) {
+                currentPositionBeats = std::fmod(currentPositionBeats, loopLengthBeats);
+            }
+            currentStepIndex = static_cast<int>(currentPositionBeats / beatsPerStep) % totalSteps;
+            break;
+            
+        case PLAY_BACKWARD:
+            currentPositionBeats -= beatsElapsed;
+            if (currentPositionBeats < 0.0) {
+                currentPositionBeats = loopLengthBeats + std::fmod(currentPositionBeats, loopLengthBeats);
+            }
+            currentStepIndex = static_cast<int>(currentPositionBeats / beatsPerStep) % totalSteps;
+            break;
+            
+        case PLAY_PENDULUM:
+            if (pendulumForward) {
+                currentPositionBeats += beatsElapsed;
+                if (currentPositionBeats >= loopLengthBeats) {
+                    currentPositionBeats = loopLengthBeats - (currentPositionBeats - loopLengthBeats);
+                    pendulumForward = false;
+                }
+            } else {
+                currentPositionBeats -= beatsElapsed;
+                if (currentPositionBeats <= 0.0) {
+                    currentPositionBeats = -currentPositionBeats;
+                    pendulumForward = true;
+                }
+            }
+            currentStepIndex = static_cast<int>(currentPositionBeats / beatsPerStep) % totalSteps;
+            break;
+            
+        case PLAY_PROBABILITY:
+            // In probability mode, we advance normally but may jump on step boundaries
+            currentPositionBeats += beatsElapsed;
+            if (loopLengthBeats > 0.0 && currentPositionBeats >= loopLengthBeats) {
+                currentPositionBeats = std::fmod(currentPositionBeats, loopLengthBeats);
+            }
+            
+            int newStep = static_cast<int>(currentPositionBeats / beatsPerStep) % totalSteps;
+            
+            // Check if we crossed a step boundary
+            if (newStep != previousStep) {
+                // Roll for probability jump
+                if (randomGenerator.nextFloat() < playModeConfig.probability) {
+                    // Jump by step jump size
+                    int jumpSteps = playModeConfig.getStepJumpSteps();
+                    
+                    // Randomly choose direction
+                    if (randomGenerator.nextBool()) {
+                        currentStepIndex = (currentStepIndex + jumpSteps) % totalSteps;
+                    } else {
+                        currentStepIndex = (currentStepIndex - jumpSteps + totalSteps) % totalSteps;
+                    }
+                    
+                    // Update position to match new step
+                    currentPositionBeats = currentStepIndex * beatsPerStep;
+                } else {
+                    currentStepIndex = newStep;
+                }
+            }
+            break;
+    }
+    
+    // Ensure position stays in valid range
+    if (currentPositionBeats < 0.0) {
+        currentPositionBeats = 0.0;
+    }
     if (loopLengthBeats > 0.0 && currentPositionBeats >= loopLengthBeats) {
         currentPositionBeats = std::fmod(currentPositionBeats, loopLengthBeats);
     }
@@ -420,6 +506,45 @@ void PlaybackEngine::stopAllNotes(juce::MidiBuffer& midiMessages)
     }
     
     activeNotesByColor.clear();
+}
+
+//==============================================================================
+int PlaybackEngine::calculateTotalSteps() const
+{
+    if (pattern == nullptr || loopLengthBeats <= 0.0) {
+        return 16;  // Default
+    }
+    
+    // Find the finest quantization across all color channels
+    TimeSignature timeSig = pattern->getTimeSignature();
+    double beatsPerBar = timeSig.getBeatsPerBar();
+    double finestInterval = beatsPerBar;  // Start with 1 bar
+    
+    for (int colorId = 0; colorId < 4; ++colorId) {
+        const ColorChannelConfig& config = pattern->getColorConfig(colorId);
+        double quantizeInterval;
+        switch (config.quantize) {
+            case Q_1_32: quantizeInterval = beatsPerBar / 32.0; break;
+            case Q_1_16: quantizeInterval = beatsPerBar / 16.0; break;
+            case Q_1_8:  quantizeInterval = beatsPerBar / 8.0;  break;
+            case Q_1_4:  quantizeInterval = beatsPerBar / 4.0;  break;
+            case Q_1_2:  quantizeInterval = beatsPerBar / 2.0;  break;
+            case Q_1_BAR: quantizeInterval = beatsPerBar;       break;
+            default:     quantizeInterval = beatsPerBar / 16.0; break;
+        }
+        finestInterval = std::min(finestInterval, quantizeInterval);
+    }
+    
+    // Calculate total steps
+    int steps = static_cast<int>(loopLengthBeats / finestInterval);
+    return std::max(1, steps);
+}
+
+int PlaybackEngine::calculateNextStep()
+{
+    // This method is used for step-based advancement
+    // Currently handled inline in updatePlaybackPosition
+    return (currentStepIndex + 1) % totalSteps;
 }
 
 } // namespace SquareBeats

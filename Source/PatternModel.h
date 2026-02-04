@@ -110,6 +110,19 @@ public:
     const PitchSequencer& getPitchSequencer() const;
     
     //==============================================================================
+    // Play mode configuration
+    
+    /**
+     * Get play mode configuration (mutable)
+     */
+    PlayModeConfig& getPlayModeConfig();
+    
+    /**
+     * Get play mode configuration (const)
+     */
+    const PlayModeConfig& getPlayModeConfig() const;
+    
+    //==============================================================================
     // Global settings
     
     /**
@@ -148,6 +161,7 @@ private:
     std::vector<Square> squares;
     std::array<ColorChannelConfig, 4> colorConfigs;
     PitchSequencer pitchSequencer;
+    PlayModeConfig playModeConfig;
     ScaleConfig scaleConfig;
     int loopLengthBars;
     TimeSignature timeSignature;

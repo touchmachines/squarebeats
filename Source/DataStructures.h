@@ -276,6 +276,58 @@ struct PitchSequencer {
 
 //==============================================================================
 /**
+ * Play mode for sequencer playback direction
+ */
+enum PlayMode {
+    PLAY_FORWARD = 0,    // --> Normal forward playback
+    PLAY_BACKWARD,       // <-- Reverse playback
+    PLAY_PENDULUM,       // <--> Bounce back and forth
+    PLAY_PROBABILITY,    // --?> Random step jumps
+    NUM_PLAY_MODES
+};
+
+/**
+ * Play mode configuration with probability settings
+ */
+struct PlayModeConfig {
+    PlayMode mode;
+    float stepJumpSize;      // 0.0 to 1.0 (normalized, maps to 1-16 steps)
+    float probability;       // 0.0 to 1.0 (chance of jumping vs normal step)
+    bool pendulumForward;    // Internal state: current direction in pendulum mode
+    
+    PlayModeConfig()
+        : mode(PLAY_FORWARD)
+        , stepJumpSize(0.5f)
+        , probability(0.5f)
+        , pendulumForward(true)
+    {}
+    
+    /**
+     * Get display name for a play mode
+     */
+    static const char* getPlayModeName(PlayMode mode) {
+        static const char* names[] = {
+            "-->",      // Forward
+            "<--",      // Backward
+            "<-->",     // Pendulum
+            "--?>"      // Probability
+        };
+        if (mode >= 0 && mode < NUM_PLAY_MODES) {
+            return names[mode];
+        }
+        return "Unknown";
+    }
+    
+    /**
+     * Get the actual step jump size in steps (1-16)
+     */
+    int getStepJumpSteps() const {
+        return 1 + static_cast<int>(stepJumpSize * 15.0f);  // Maps 0.0-1.0 to 1-16
+    }
+};
+
+//==============================================================================
+/**
  * Square represents a MIDI note event on the sequencing plane
  * All coordinates are normalized (0.0 to 1.0) relative to the sequencing plane
  */

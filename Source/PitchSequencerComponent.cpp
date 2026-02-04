@@ -9,6 +9,8 @@ PitchSequencerComponent::PitchSequencerComponent(PatternModel& model)
     , selectedColorChannel(0)
     , playbackPosition(0.0f)
     , isDrawing(false)
+    , lastNormalizedX(0.0f)
+    , lastPitchOffset(0.0f)
 {
     // Waveforms are now initialized per-color in PatternModel
     
@@ -196,6 +198,10 @@ void PitchSequencerComponent::mouseDown(const juce::MouseEvent& event)
     float normalizedX = juce::jlimit(0.0f, 1.0f, pixelXToNormalized(mousePos.x));
     float pitchOffset = juce::jlimit(-12.0f, 12.0f, pixelYToPitchOffset(mousePos.y));
     
+    // Store for interpolation on subsequent drag events
+    lastNormalizedX = normalizedX;
+    lastPitchOffset = pitchOffset;
+    
     recordPitchOffset(normalizedX, pitchOffset);
     
     repaint();
@@ -208,12 +214,58 @@ void PitchSequencerComponent::mouseDrag(const juce::MouseEvent& event)
         return;
     }
     
-    // Record the dragged point
+    // Get current mouse position
     auto mousePos = event.position;
-    float normalizedX = juce::jlimit(0.0f, 1.0f, pixelXToNormalized(mousePos.x));
-    float pitchOffset = juce::jlimit(-12.0f, 12.0f, pixelYToPitchOffset(mousePos.y));
+    float currentNormalizedX = juce::jlimit(0.0f, 1.0f, pixelXToNormalized(mousePos.x));
+    float currentPitchOffset = juce::jlimit(-12.0f, 12.0f, pixelYToPitchOffset(mousePos.y));
     
-    recordPitchOffset(normalizedX, pitchOffset);
+    // Interpolate between last position and current position to fill gaps
+    // This prevents choppy drawing when the mouse moves fast
+    auto& colorConfig = patternModel.getColorConfig(selectedColorChannel);
+    
+    // Ensure waveform is initialized
+    if (colorConfig.pitchWaveform.empty())
+    {
+        colorConfig.pitchWaveform.resize(waveformResolution, 0.0f);
+    }
+    
+    int waveformSize = static_cast<int>(colorConfig.pitchWaveform.size());
+    int lastIndex = static_cast<int>(lastNormalizedX * (waveformSize - 1));
+    int currentIndex = static_cast<int>(currentNormalizedX * (waveformSize - 1));
+    
+    // Determine direction and fill all points between last and current
+    int startIndex = std::min(lastIndex, currentIndex);
+    int endIndex = std::max(lastIndex, currentIndex);
+    
+    for (int i = startIndex; i <= endIndex; ++i)
+    {
+        // Calculate interpolation factor
+        float t = 0.0f;
+        if (endIndex != startIndex)
+        {
+            if (currentIndex > lastIndex)
+            {
+                t = static_cast<float>(i - lastIndex) / static_cast<float>(currentIndex - lastIndex);
+            }
+            else
+            {
+                t = static_cast<float>(i - currentIndex) / static_cast<float>(lastIndex - currentIndex);
+                t = 1.0f - t;  // Reverse interpolation direction
+            }
+        }
+        
+        // Interpolate pitch offset
+        float interpolatedPitch = lastPitchOffset + t * (currentPitchOffset - lastPitchOffset);
+        interpolatedPitch = juce::jlimit(-12.0f, 12.0f, interpolatedPitch);
+        
+        // Store the interpolated value
+        int clampedIndex = juce::jlimit(0, waveformSize - 1, i);
+        colorConfig.pitchWaveform[clampedIndex] = interpolatedPitch;
+    }
+    
+    // Update last position for next drag event
+    lastNormalizedX = currentNormalizedX;
+    lastPitchOffset = currentPitchOffset;
     
     repaint();
 }

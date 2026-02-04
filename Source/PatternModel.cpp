@@ -187,6 +187,19 @@ const PitchSequencer& PatternModel::getPitchSequencer() const
 }
 
 //==============================================================================
+// Play mode configuration
+
+PlayModeConfig& PatternModel::getPlayModeConfig()
+{
+    return playModeConfig;
+}
+
+const PlayModeConfig& PatternModel::getPlayModeConfig() const
+{
+    return playModeConfig;
+}
+
+//==============================================================================
 // Global settings
 
 void PatternModel::setLoopLength(int bars)

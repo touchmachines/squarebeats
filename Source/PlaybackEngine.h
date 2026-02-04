@@ -87,6 +87,12 @@ private:
     double sampleRate;            // Current sample rate
     double bpm;                   // Current tempo
     
+    // Play mode state
+    int currentStepIndex;         // Current step index for step-based modes
+    int totalSteps;               // Total steps in the loop (based on quantization)
+    bool pendulumForward;         // Current direction in pendulum mode
+    juce::Random randomGenerator; // For probability mode
+    
     // Monophonic voice management: one active note per color channel
     std::map<int, ActiveNote> activeNotesByColor;
     
@@ -137,6 +143,17 @@ private:
      * @param midiMessages MIDI buffer to add messages to
      */
     void stopAllNotes(juce::MidiBuffer& midiMessages);
+    
+    /**
+     * Calculate the next step index based on play mode
+     * @return The next step index
+     */
+    int calculateNextStep();
+    
+    /**
+     * Get the number of steps per loop based on finest quantization
+     */
+    int calculateTotalSteps() const;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlaybackEngine)
 };

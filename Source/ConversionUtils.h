@@ -20,11 +20,11 @@ namespace SquareBeats {
 /**
  * Convert normalized time position to beats
  * @param normalized Normalized time (0.0 to 1.0 within loop)
- * @param loopLengthBars Loop length in bars
+ * @param loopLengthBars Loop length in bars (supports fractional bars for steps)
  * @param timeSig Time signature
  * @return Time position in beats
  */
-inline double normalizedToBeats(float normalized, int loopLengthBars, const TimeSignature& timeSig)
+inline double normalizedToBeats(float normalized, double loopLengthBars, const TimeSignature& timeSig)
 {
     double beatsPerBar = timeSig.getBeatsPerBar();
     double totalBeats = loopLengthBars * beatsPerBar;
@@ -34,11 +34,11 @@ inline double normalizedToBeats(float normalized, int loopLengthBars, const Time
 /**
  * Convert beats to normalized time position
  * @param beats Time position in beats
- * @param loopLengthBars Loop length in bars
+ * @param loopLengthBars Loop length in bars (supports fractional bars for steps)
  * @param timeSig Time signature
  * @return Normalized time (0.0 to 1.0 within loop)
  */
-inline float beatsToNormalized(double beats, int loopLengthBars, const TimeSignature& timeSig)
+inline float beatsToNormalized(double beats, double loopLengthBars, const TimeSignature& timeSig)
 {
     double beatsPerBar = timeSig.getBeatsPerBar();
     double totalBeats = loopLengthBars * beatsPerBar;

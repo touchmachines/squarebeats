@@ -12,7 +12,7 @@ void StateManager::saveState(const PatternModel& model, juce::MemoryBlock& destD
     stream.writeInt(VERSION);
     
     // Write global settings
-    stream.writeInt(model.getLoopLength());
+    stream.writeDouble(model.getLoopLength());
     
     TimeSignature timeSig = model.getTimeSignature();
     stream.writeInt(timeSig.numerator);
@@ -96,22 +96,22 @@ bool StateManager::loadState(PatternModel& model, const void* data, int sizeInBy
     try
     {
         // Check if we have enough data remaining
-        if (stream.getNumBytesRemaining() < 12)  // Need at least 3 ints for global settings
+        if (stream.getNumBytesRemaining() < 16)  // Need 1 double (8 bytes) + 2 ints (8 bytes) for global settings
         {
             juce::Logger::writeToLog("StateManager: Truncated data (not enough for global settings)");
             return false;
         }
         
         // Read global settings
-        int loopLength = stream.readInt();
+        double loopLength = stream.readDouble();
         int timeSigNumerator = stream.readInt();
         int timeSigDenominator = stream.readInt();
         
         // Validate global settings before applying
-        if (loopLength < 1 || loopLength > 4)
+        if (loopLength < 1.0 / 16.0 || loopLength > 64.0)
         {
             juce::Logger::writeToLog("StateManager: Invalid loop length " + juce::String(loopLength) + ", using default");
-            loopLength = 2;  // Default to 2 bars
+            loopLength = 2.0;  // Default to 2 bars
         }
         
         if (timeSigNumerator < 1 || timeSigNumerator > 16)

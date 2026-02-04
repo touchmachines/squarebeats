@@ -74,7 +74,7 @@ void SequencingPlaneComponent::drawGridLines(juce::Graphics& g)
     
     // Get time signature and loop length for grid calculation
     auto timeSignature = patternModel.getTimeSignature();
-    int loopLength = patternModel.getLoopLength();
+    double loopLength = patternModel.getLoopLength();
     
     // Calculate total beats in the loop
     double beatsPerBar = timeSignature.getBeatsPerBar();

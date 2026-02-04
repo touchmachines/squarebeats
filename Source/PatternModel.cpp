@@ -223,10 +223,11 @@ ScaleConfig PatternModel::getActiveScale(double positionBars) const
 //==============================================================================
 // Global settings
 
-void PatternModel::setLoopLength(int bars)
+void PatternModel::setLoopLength(double bars)
 {
-    // Clamp to valid range (1-64 bars)
-    loopLengthBars = juce::jlimit(1, 64, bars);
+    // Clamp to valid range (1/16 bar to 64 bars)
+    // 1/16 bar = 1 step, 64 bars = maximum
+    loopLengthBars = juce::jlimit(1.0 / 16.0, 64.0, bars);
     
     // Loop length only affects playback speed, not the squares themselves
     // Squares always use normalized coordinates (0.0 to 1.0) across the full plane
@@ -234,7 +235,7 @@ void PatternModel::setLoopLength(int bars)
     sendChangeMessage();
 }
 
-int PatternModel::getLoopLength() const
+double PatternModel::getLoopLength() const
 {
     return loopLengthBars;
 }

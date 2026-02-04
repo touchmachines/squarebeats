@@ -304,7 +304,7 @@ For detailed testing instructions, see [BUILD_AND_TEST.md](BUILD_AND_TEST.md)
   - **Backward (<--)**: Reverse playback
   - **Pendulum (<-->)**: Bounces back and forth
   - **Probability (--?>)**: Random step jumps with configurable step size and probability via XY pad
-- **Loop Lengths**: 1-64 bar patterns (controls playback speed, not square positions)
+- **Loop Lengths**: 1-15 steps, 1-8 bars, 16/32/64 bars (controls playback speed, not square positions)
 - **Time Signatures**: Support for various time signatures (1-16 numerator, 1/2/4/8/16 denominator)
 - **Preset Support**: Full state saving/loading through DAW preset system
 
@@ -316,7 +316,7 @@ For detailed testing instructions, see [BUILD_AND_TEST.md](BUILD_AND_TEST.md)
   - **PITCH tab**: Switch to pitch sequencer editing mode
   - **Context-Sensitive Clear Button**: Clears squares in SQUARES mode, resets pitch waveform in PITCH mode
   - **Pitch Sequencer Length**: Per-color dropdown for 1-64 bar pitch sequencer loops (always visible)
-- **Loop Length Selector**: Dropdown for selecting loop length from 1-64 bars
+- **Loop Length Selector**: Dropdown for selecting loop length (1-15 steps, 1-8 bars, 16/32/64 bars)
 - **Scale Controls**: Root note and scale type selection (Chromatic, Major, Minor, Harmonic Minor, Melodic Minor, Pentatonic Major/Minor, Blues, Dorian, Phrygian, Lydian, Mixolydian, Locrian, Whole Tone, Diminished). When scale sequencer is enabled, these controls are disabled and display the currently playing scale.
 - **Scale Sequencer Panel**: Timeline editor for chaining key/scale changes. Click segments to edit, drag edges to resize, click "+" to add new segments. Toggle with "Scale Seq" button.
 - **Play Mode Buttons**: Located in top bar for easy access - Forward, Backward, Pendulum, or Probability modes

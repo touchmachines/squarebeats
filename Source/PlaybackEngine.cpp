@@ -27,7 +27,7 @@ void PlaybackEngine::setPatternModel(PatternModel* model)
     // Recalculate loop length when pattern changes
     if (pattern != nullptr) {
         TimeSignature timeSig = pattern->getTimeSignature();
-        int loopBars = pattern->getLoopLength();
+        double loopBars = pattern->getLoopLength();
         loopLengthBeats = loopBars * timeSig.getBeatsPerBar();
         totalSteps = calculateTotalSteps();
     }
@@ -281,7 +281,7 @@ void PlaybackEngine::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBu
     
     // Recalculate loop length in case it changed
     TimeSignature timeSig = pattern->getTimeSignature();
-    int loopBars = pattern->getLoopLength();
+    double loopBars = pattern->getLoopLength();
     loopLengthBeats = loopBars * timeSig.getBeatsPerBar();
     
     int numSamples = buffer.getNumSamples();
@@ -365,8 +365,8 @@ void PlaybackEngine::processSquareTriggers(juce::MidiBuffer& midiMessages,
         timeSig = TimeSignature(4, 4);  // Default to 4/4 if invalid
     }
     
-    int loopBars = pattern->getLoopLength();
-    if (loopBars <= 0) {
+    double loopBars = pattern->getLoopLength();
+    if (loopBars <= 0.0) {
         return;  // Can't process with invalid loop length
     }
     

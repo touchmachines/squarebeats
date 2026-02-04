@@ -145,14 +145,15 @@ public:
     // Global settings
     
     /**
-     * Set loop length in bars (1-64)
+     * Set loop length in bars (supports fractional bars for steps)
+     * Range: 1/16 bar (1 step) to 64 bars
      */
-    void setLoopLength(int bars);
+    void setLoopLength(double bars);
     
     /**
      * Get loop length in bars
      */
-    int getLoopLength() const;
+    double getLoopLength() const;
     
     /**
      * Set time signature
@@ -183,7 +184,7 @@ private:
     PlayModeConfig playModeConfig;
     ScaleSequencerConfig scaleSequencer;
     ScaleConfig scaleConfig;
-    int loopLengthBars;
+    double loopLengthBars;
     TimeSignature timeSignature;
     uint32_t nextUniqueId;
     

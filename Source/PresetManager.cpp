@@ -71,13 +71,31 @@ juce::StringArray PresetManager::getPresetList() const
                                    "*.vstpreset");
     
     // Extract names without extension
+    juce::StringArray factoryPresets;
+    juce::StringArray userPresets;
+    
     for (const auto& file : presetFiles)
     {
-        presetNames.add(file.getFileNameWithoutExtension());
+        juce::String name = file.getFileNameWithoutExtension();
+        
+        // Separate factory presets (starting with underscore) from user presets
+        if (name.startsWith("_"))
+        {
+            factoryPresets.add(name);
+        }
+        else
+        {
+            userPresets.add(name);
+        }
     }
     
-    // Sort alphabetically
-    presetNames.sort(true);  // case-insensitive
+    // Sort each group alphabetically
+    factoryPresets.sort(true);  // case-insensitive
+    userPresets.sort(true);
+    
+    // Add factory presets first, then user presets
+    presetNames.addArray(factoryPresets);
+    presetNames.addArray(userPresets);
     
     return presetNames;
 }

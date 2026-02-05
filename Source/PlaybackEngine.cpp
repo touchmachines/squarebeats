@@ -309,15 +309,9 @@ void PlaybackEngine::updatePlaybackPosition(int numSamples)
             if (newStep != previousStep) {
                 // Roll for probability jump
                 if (randomGenerator.nextFloat() < playModeConfig.probability) {
-                    // Jump by step jump size
+                    // Jump forward by step jump size (always forward, matching per-color behavior)
                     int jumpSteps = playModeConfig.getStepJumpSteps();
-                    
-                    // Randomly choose direction
-                    if (randomGenerator.nextBool()) {
-                        currentStepIndex = (currentStepIndex + jumpSteps) % totalSteps;
-                    } else {
-                        currentStepIndex = (currentStepIndex - jumpSteps + totalSteps) % totalSteps;
-                    }
+                    currentStepIndex = (currentStepIndex + jumpSteps) % totalSteps;
                     
                     // Update position to match new step
                     currentPositionBeats = currentStepIndex * beatsPerStep;
@@ -421,20 +415,78 @@ double PlaybackEngine::getPositionInBars() const
 
 void PlaybackEngine::resetPlaybackPosition()
 {
-    currentPositionBeats = 0.0;
-    absolutePositionBeats = 0.0;
-    currentStepIndex = 0;
-    
-    // Reset per-color positions, pendulum directions, and step indices
-    for (int i = 0; i < 4; ++i) {
-        colorPositionBeats[i] = 0.0;
-        colorPendulumForward[i] = true;
-        colorCurrentStep[i] = 0;
-    }
-    
     // Stop all active notes when resetting
     juce::MidiBuffer dummyBuffer;
     stopAllNotes(dummyBuffer);
+    
+    // If not playing, just reset to zero
+    if (!isPlaying || pattern == nullptr || loopLengthBeats <= 0.0) {
+        currentPositionBeats = 0.0;
+        absolutePositionBeats = 0.0;
+        currentStepIndex = 0;
+        
+        for (int i = 0; i < 4; ++i) {
+            colorPositionBeats[i] = 0.0;
+            colorPendulumForward[i] = true;
+            colorCurrentStep[i] = 0;
+        }
+        return;
+    }
+    
+    // If playing, sync with host position to stay in time
+    // Use absolutePositionBeats as the reference (it tracks host continuously)
+    const PlayModeConfig& playModeConfig = pattern->getPlayModeConfig();
+    
+    // Sync global position to current host position within loop
+    double hostPosition = std::fmod(absolutePositionBeats, loopLengthBeats);
+    if (hostPosition < 0.0) {
+        hostPosition += loopLengthBeats;
+    }
+    
+    // For backward mode, start from end minus offset
+    if (playModeConfig.mode == PLAY_BACKWARD) {
+        currentPositionBeats = loopLengthBeats - hostPosition;
+        if (currentPositionBeats < 0.0) currentPositionBeats = 0.0;
+    } else {
+        currentPositionBeats = hostPosition;
+    }
+    
+    // Reset pendulum direction to forward
+    pendulumForward = true;
+    
+    // Calculate current step index
+    TimeSignature timeSig = pattern->getTimeSignature();
+    double beatsPerStep = loopLengthBeats / totalSteps;
+    currentStepIndex = static_cast<int>(currentPositionBeats / beatsPerStep) % totalSteps;
+    
+    // Sync per-color positions based on their individual loop lengths
+    for (int colorId = 0; colorId < 4; ++colorId) {
+        colorPendulumForward[colorId] = true;
+        
+        if (colorLoopLengthBeats[colorId] > 0.0) {
+            // Calculate where this color should be based on host position
+            double colorHostPos = std::fmod(absolutePositionBeats, colorLoopLengthBeats[colorId]);
+            if (colorHostPos < 0.0) {
+                colorHostPos += colorLoopLengthBeats[colorId];
+            }
+            
+            // For backward mode, start from end minus offset
+            if (playModeConfig.mode == PLAY_BACKWARD) {
+                colorPositionBeats[colorId] = colorLoopLengthBeats[colorId] - colorHostPos;
+                if (colorPositionBeats[colorId] < 0.0) colorPositionBeats[colorId] = 0.0;
+            } else {
+                colorPositionBeats[colorId] = colorHostPos;
+            }
+            
+            // Calculate step index for this color (for probability mode)
+            int colorSteps = std::max(1, static_cast<int>(colorLoopLengthBeats[colorId] / (timeSig.getBeatsPerBar() / 16.0)));
+            double beatsPerColorStep = colorLoopLengthBeats[colorId] / colorSteps;
+            colorCurrentStep[colorId] = static_cast<int>(colorPositionBeats[colorId] / beatsPerColorStep) % colorSteps;
+        } else {
+            colorPositionBeats[colorId] = 0.0;
+            colorCurrentStep[colorId] = 0;
+        }
+    }
 }
 
 void PlaybackEngine::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)

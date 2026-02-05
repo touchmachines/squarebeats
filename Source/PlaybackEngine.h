@@ -84,8 +84,15 @@ public:
     bool getIsPlaying() const { return isPlaying; }
     
     /**
-     * Reset playback position to start of loop
-     * Call this when changing play modes to stay on beat
+     * Reset playback position and sync with host transport
+     * 
+     * When playing: Syncs all positions (global and per-color) to current host position
+     * to maintain timing alignment when switching play modes. Each color syncs to its
+     * own loop length independently.
+     * 
+     * When stopped: Resets all positions to zero.
+     * 
+     * Call this when changing play modes to stay in sync with DAW.
      */
     void resetPlaybackPosition();
     

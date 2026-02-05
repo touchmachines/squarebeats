@@ -1,4 +1,5 @@
 #include "LoopLengthSelector.h"
+#include "AppFont.h"
 
 namespace SquareBeats {
 
@@ -6,10 +7,11 @@ namespace SquareBeats {
 LoopLengthSelector::LoopLengthSelector(PatternModel& model)
     : patternModel(model)
 {
-    // Setup label
-    loopLengthLabel.setText("Loop Length:", juce::dontSendNotification);
+    // Setup label - two lines: "Global" and "Loop Length"
+    loopLengthLabel.setText("Global\nLoop Length", juce::dontSendNotification);
     loopLengthLabel.setColour(juce::Label::textColourId, juce::Colours::white);
     loopLengthLabel.setJustificationType(juce::Justification::centredRight);
+    loopLengthLabel.setFont(AppFont::label());
     addAndMakeVisible(loopLengthLabel);
     
     // Setup combo box with steps (1-15) and bars (1-8, 16, 32, 64)

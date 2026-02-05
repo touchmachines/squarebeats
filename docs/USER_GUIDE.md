@@ -103,8 +103,10 @@ Click one of the 4 color squares in the right panel to:
 - Route to different instruments
 
 **Pitch Len:**
-- Pitch sequencer loop length (1-64 bars)
-- Independent from main loop
+- Pitch sequencer loop length for this color
+- "Global" = use global loop length
+- 1-64 bars = independent loop length
+- Creates polyrhythmic pitch patterns
 
 **Loop Len:**
 - Main loop length override for this color
@@ -120,12 +122,15 @@ Each color has its own pitch modulation:
 2. Draw a pitch curve by clicking and dragging
 3. Curve adds semitone offset (-12 to +12) to all notes
 4. Set independent loop length with "Pitch Len:" dropdown
+   - "Global" = use global loop length
+   - 1-64 bars = independent loop length
 5. Pitch modulation is always active
 
 **Use Cases:**
 - Add vibrato or pitch bends
 - Create polyrhythmic pitch patterns
 - Different pitch modulation per color
+- Sync pitch modulation with main pattern (use "Global")
 
 ## Musical Scales
 

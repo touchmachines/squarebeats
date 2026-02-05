@@ -24,7 +24,7 @@ Configuration for each of the 4 color channels:
 - `quantize`: Quantization value (1/32 to 1 bar)
 - `displayColor`: UI rendering color
 - `pitchWaveform`: Per-color pitch sequencer waveform
-- `pitchSeqLoopLengthBars`: Per-color pitch sequencer loop (1-64 bars)
+- `pitchSeqLoopLengthBars`: Per-color pitch sequencer loop (0 = use global, 1-64 = bars)
 - `mainLoopLengthBars`: Per-color main loop override (0 = use global)
 - `getPitchOffsetAt()`: Get interpolated pitch offset at position
 

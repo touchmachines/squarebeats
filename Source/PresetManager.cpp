@@ -249,7 +249,7 @@ void PresetManager::createInitPreset()
         // Keep default values (already set by PatternModel constructor)
         // Just ensure pitch waveform is zeroed
         std::fill(config.pitchWaveform.begin(), config.pitchWaveform.end(), 0.0f);
-        config.pitchSeqLoopLengthBars = 1;  // 1 bar
+        config.pitchSeqLoopLengthBars = 0;  // Use global
         config.mainLoopLengthBars = 0.0;  // Use global
         initModel.setColorConfig(i, config);
     }

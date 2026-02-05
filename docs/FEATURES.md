@@ -45,7 +45,7 @@ Chain multiple key/scale changes with independent timing:
 ### Per-Color Pitch Sequencer
 Each color has its own pitch modulation:
 - Draw pitch curves that add semitone offsets (-12 to +12)
-- Independent loop length per color (1-64 bars)
+- Independent loop length per color ("Global" or 1-64 bars)
 - Creates polyrhythmic pitch patterns
 - Always active (modulation applies regardless of editing mode)
 - Smooth interpolation between waveform points

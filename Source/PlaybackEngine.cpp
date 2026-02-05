@@ -376,7 +376,13 @@ float PlaybackEngine::getNormalizedPitchSeqPosition(int colorId) const
     
     const ColorChannelConfig& config = pattern->getColorConfig(colorId);
     TimeSignature timeSig = pattern->getTimeSignature();
-    double pitchSeqLoopBeats = config.pitchSeqLoopLengthBars * timeSig.getBeatsPerBar();
+    
+    // Use global loop length if pitchSeqLoopLengthBars is 0
+    double pitchSeqLoopBars = (config.pitchSeqLoopLengthBars > 0) 
+        ? config.pitchSeqLoopLengthBars 
+        : pattern->getLoopLength();
+    
+    double pitchSeqLoopBeats = pitchSeqLoopBars * timeSig.getBeatsPerBar();
     
     if (pitchSeqLoopBeats <= 0.0) {
         return 0.0f;
@@ -728,7 +734,11 @@ void PlaybackEngine::processColorTriggers(juce::MidiBuffer& midiMessages, int co
             // Calculate pitch offset
             float pitchOffset = 0.0f;
             if (!config.pitchWaveform.empty()) {
-                double pitchSeqLoopBeats = config.pitchSeqLoopLengthBars * timeSig.getBeatsPerBar();
+                // Use global loop length if pitchSeqLoopLengthBars is 0
+                double pitchSeqLoopBars = (config.pitchSeqLoopLengthBars > 0) 
+                    ? config.pitchSeqLoopLengthBars 
+                    : pattern->getLoopLength();
+                double pitchSeqLoopBeats = pitchSeqLoopBars * timeSig.getBeatsPerBar();
                 if (pitchSeqLoopBeats > 0.0) {
                     double normalizedPitchSeqPos = std::fmod(absolutePositionBeats, pitchSeqLoopBeats) / pitchSeqLoopBeats;
                     pitchOffset = config.getPitchOffsetAt(normalizedPitchSeqPos);
@@ -905,7 +915,11 @@ void PlaybackEngine::processSquareTriggers(juce::MidiBuffer& midiMessages,
             // Pitch modulation is always applied regardless of editing mode
             float pitchOffset = 0.0f;
             if (!config.pitchWaveform.empty()) {
-                double pitchSeqLoopBeats = config.pitchSeqLoopLengthBars * timeSig.getBeatsPerBar();
+                // Use global loop length if pitchSeqLoopLengthBars is 0
+                double pitchSeqLoopBars = (config.pitchSeqLoopLengthBars > 0) 
+                    ? config.pitchSeqLoopLengthBars 
+                    : pattern->getLoopLength();
+                double pitchSeqLoopBeats = pitchSeqLoopBars * timeSig.getBeatsPerBar();
                 if (pitchSeqLoopBeats > 0.0) {
                     // Use absolute position so pitch sequencer runs independently of main loop
                     double normalizedPitchSeqPos = std::fmod(absolutePositionBeats, pitchSeqLoopBeats) / pitchSeqLoopBeats;
@@ -986,7 +1000,12 @@ void PlaybackEngine::sendNoteOn(juce::MidiBuffer& midiMessages, const Square& sq
     if (!config.pitchWaveform.empty()) {
         // Use absolute position so pitch sequencer runs independently of main loop
         TimeSignature timeSig = pattern->getTimeSignature();
-        double pitchSeqLoopBeats = config.pitchSeqLoopLengthBars * timeSig.getBeatsPerBar();
+        
+        // Use global loop length if pitchSeqLoopLengthBars is 0
+        double pitchSeqLoopBars = (config.pitchSeqLoopLengthBars > 0) 
+            ? config.pitchSeqLoopLengthBars 
+            : pattern->getLoopLength();
+        double pitchSeqLoopBeats = pitchSeqLoopBars * timeSig.getBeatsPerBar();
         
         // Validate pitch sequencer loop length
         if (pitchSeqLoopBeats > 0.0) {

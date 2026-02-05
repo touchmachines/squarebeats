@@ -215,7 +215,7 @@ bool StateManager::loadState(PatternModel& model, const void* data, int sizeInBy
             config.lowNote = stream.readInt();
             config.quantize = static_cast<QuantizationValue>(stream.readInt());
             config.displayColor = juce::Colour(static_cast<uint32_t>(stream.readInt()));
-            config.pitchSeqLoopLengthBars = juce::jlimit(1, 64, stream.readInt());
+            config.pitchSeqLoopLengthBars = juce::jlimit(0, 64, stream.readInt());  // 0 = use global
             
             // Per-color loop length (Version 6+)
             if (version >= 6)

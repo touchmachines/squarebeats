@@ -146,7 +146,15 @@ void ColorConfigPanel::refreshFromModel()
     midiChannelCombo.setSelectedId(config.midiChannel, juce::dontSendNotification);
     
     // Update pitch sequencer length
-    pitchSeqLengthCombo.setSelectedId(config.pitchSeqLoopLengthBars, juce::dontSendNotification);
+    if (config.pitchSeqLoopLengthBars <= 0)
+    {
+        pitchSeqLengthCombo.setSelectedId(1, juce::dontSendNotification); // Global
+    }
+    else
+    {
+        int bars = juce::jlimit(1, 64, config.pitchSeqLoopLengthBars);
+        pitchSeqLengthCombo.setSelectedId(bars + 1, juce::dontSendNotification); // IDs 2-65
+    }
     
     // Update main loop length
     if (config.mainLoopLengthBars <= 0.0)
@@ -276,12 +284,13 @@ void ColorConfigPanel::setupComponents()
     pitchSeqLengthLabel.setFont(AppFont::label());
     addAndMakeVisible(pitchSeqLengthLabel);
     
+    pitchSeqLengthCombo.addItem("Global", 1);  // ID 1 = use global loop length
     for (int i = 1; i <= 64; ++i)
     {
         juce::String label = juce::String(i) + (i == 1 ? " Bar" : " Bars");
-        pitchSeqLengthCombo.addItem(label, i);
+        pitchSeqLengthCombo.addItem(label, i + 1);  // IDs 2-65 = 1-64 bars
     }
-    pitchSeqLengthCombo.setSelectedId(16); // Default to 16 bars
+    pitchSeqLengthCombo.setSelectedId(1); // Default to Global
     pitchSeqLengthCombo.onChange = [this]() { onPitchSeqLengthChanged(); };
     addAndMakeVisible(pitchSeqLengthCombo);
     
@@ -451,7 +460,18 @@ void ColorConfigPanel::onMidiChannelChanged()
 void ColorConfigPanel::onPitchSeqLengthChanged()
 {
     auto& config = patternModel.getColorConfig(currentColorChannel);
-    config.pitchSeqLoopLengthBars = pitchSeqLengthCombo.getSelectedId();
+    int selectedId = pitchSeqLengthCombo.getSelectedId();
+    
+    if (selectedId == 1)
+    {
+        // Global selected
+        config.pitchSeqLoopLengthBars = 0;
+    }
+    else
+    {
+        // IDs 2-65 map to 1-64 bars
+        config.pitchSeqLoopLengthBars = selectedId - 1;
+    }
     
     patternModel.setColorConfig(currentColorChannel, config);
 }

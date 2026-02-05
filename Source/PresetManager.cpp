@@ -273,6 +273,10 @@ void PresetManager::createInitPreset()
     playModeConfig.probability = 0.5f;
     playModeConfig.pendulumForward = true;
     
+    // Set default pitch sequencer mode (SQUARES tab, not PITCH tab)
+    PitchSequencer& pitchSeq = initModel.getPitchSequencer();
+    pitchSeq.editingPitch = false;  // SQUARES tab selected
+    
     // Save as "_Init" preset (underscore prefix sorts to top)
     if (savePreset(initModel, "_Init"))
     {

@@ -17,10 +17,11 @@ PlaybackEngine::PlaybackEngine()
     , totalSteps(16)
     , pendulumForward(true)
 {
-    // Initialize per-color positions
+    // Initialize per-color positions and pendulum directions
     for (int i = 0; i < 4; ++i) {
         colorPositionBeats[i] = 0.0;
         colorLoopLengthBeats[i] = 0.0;
+        colorPendulumForward[i] = true;
     }
 }
 
@@ -84,13 +85,14 @@ void PlaybackEngine::handleTransportChange(bool playing, double sr, double tempo
             visualFeedback->clearAllGates();
         }
         
-        // Reset step position and pendulum direction
+        // Reset step position and pendulum directions
         currentStepIndex = 0;
         pendulumForward = true;
         
-        // Reset per-color positions
+        // Reset per-color positions and pendulum directions
         for (int i = 0; i < 4; ++i) {
             colorPositionBeats[i] = 0.0;
+            colorPendulumForward[i] = true;
         }
     }
     
@@ -122,8 +124,10 @@ void PlaybackEngine::handleTransportChange(bool playing, double sr, double tempo
         
         pendulumForward = true;
         
-        // Sync per-color positions
+        // Sync per-color positions and pendulum directions
         for (int colorId = 0; colorId < 4; ++colorId) {
+            colorPendulumForward[colorId] = true;
+            
             if (colorLoopLengthBeats[colorId] > 0.0) {
                 double colorHostPos = std::fmod(timeInBeats, colorLoopLengthBeats[colorId]);
                 if (colorHostPos < 0.0) {
@@ -188,16 +192,20 @@ void PlaybackEngine::updatePlaybackPosition(int numSamples)
                 break;
                 
             case PLAY_PENDULUM:
-                // Note: Pendulum uses shared direction state for simplicity
-                if (pendulumForward) {
+                // Each color has its own pendulum direction based on its own loop length
+                if (colorPendulumForward[colorId]) {
                     colorPositionBeats[colorId] += beatsElapsed;
                     if (colorPositionBeats[colorId] >= colorLoopBeats) {
+                        // Hit the end - bounce back
                         colorPositionBeats[colorId] = colorLoopBeats - (colorPositionBeats[colorId] - colorLoopBeats);
+                        colorPendulumForward[colorId] = false;
                     }
                 } else {
                     colorPositionBeats[colorId] -= beatsElapsed;
                     if (colorPositionBeats[colorId] <= 0.0) {
+                        // Hit the start - bounce forward
                         colorPositionBeats[colorId] = -colorPositionBeats[colorId];
+                        colorPendulumForward[colorId] = true;
                     }
                 }
                 break;
@@ -385,9 +393,10 @@ void PlaybackEngine::resetPlaybackPosition()
     absolutePositionBeats = 0.0;
     currentStepIndex = 0;
     
-    // Reset per-color positions
+    // Reset per-color positions and pendulum directions
     for (int i = 0; i < 4; ++i) {
         colorPositionBeats[i] = 0.0;
+        colorPendulumForward[i] = true;
     }
     
     // Stop all active notes when resetting

@@ -120,6 +120,7 @@ private:
     // Per-color playback positions (for independent loop lengths)
     double colorPositionBeats[4];  // Current position for each color
     double colorLoopLengthBeats[4]; // Loop length for each color
+    bool colorPendulumForward[4];  // Per-color pendulum direction
     
     bool isPlaying;               // Transport play state
     double sampleRate;            // Current sample rate
@@ -128,7 +129,7 @@ private:
     // Play mode state
     int currentStepIndex;         // Current step index for step-based modes
     int totalSteps;               // Total steps in the loop (based on quantization)
-    bool pendulumForward;         // Current direction in pendulum mode
+    bool pendulumForward;         // Global direction in pendulum mode (for global position tracking)
     juce::Random randomGenerator; // For probability mode
     
     // Monophonic voice management: one active note per color channel

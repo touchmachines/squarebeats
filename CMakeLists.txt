@@ -60,6 +60,7 @@ target_sources(SquareBeats
         Source/PlayModeControls.cpp
         Source/ScaleSequencerComponent.cpp
         Source/GateFlashOverlay.cpp
+        Source/HelpAboutDialog.cpp
 )
 
 # Add header files (for IDE organization)
@@ -85,6 +86,8 @@ target_sources(SquareBeats
         Source/ScaleSequencerComponent.h
         Source/VisualFeedback.h
         Source/GateFlashOverlay.h
+        Source/HelpAboutDialog.h
+        Source/AppFont.h
 )
 
 # Link JUCE modules

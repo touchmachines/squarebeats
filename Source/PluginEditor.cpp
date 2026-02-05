@@ -1,6 +1,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "BinaryData.h"
+#include "HelpAboutDialog.h"
 
 //==============================================================================
 SquareBeatsAudioProcessorEditor::SquareBeatsAudioProcessorEditor (SquareBeatsAudioProcessor& p)
@@ -164,14 +165,19 @@ void SquareBeatsAudioProcessorEditor::paint (juce::Graphics& g)
     // Draw the logo in the top left corner
     if (logoImage.isValid())
     {
-        int logoHeight = 50;  // Fit within top bar
-        int logoWidth = static_cast<int>(logoImage.getWidth() * (static_cast<float>(logoHeight) / logoImage.getHeight()));
+        auto logoBounds = getLogoBounds();
         
         // Draw with high quality scaling
         g.drawImage(logoImage, 
-                    5, 5, logoWidth, logoHeight,  // Destination rectangle
-                    0, 0, logoImage.getWidth(), logoImage.getHeight(),  // Source rectangle
-                    false);  // Don't fill alpha with background
+                    logoBounds.toFloat(),
+                    juce::RectanglePlacement::centred | juce::RectanglePlacement::onlyReduceInSize);
+        
+        // Draw a subtle hover effect if mouse is over logo
+        if (logoBounds.contains(getMouseXYRelative()))
+        {
+            g.setColour(juce::Colours::white.withAlpha(0.1f));
+            g.fillRect(logoBounds);
+        }
     }
 }
 
@@ -186,6 +192,7 @@ void SquareBeatsAudioProcessorEditor::resized()
     int logoHeight = topBar.getHeight() - 10;
     int logoWidth = logoImage.isValid() ? 
         static_cast<int>(logoImage.getWidth() * (static_cast<float>(logoHeight) / logoImage.getHeight())) : 60;
+    logoClickArea = juce::Rectangle<int>(5, 5, logoWidth, logoHeight);
     topBar.removeFromLeft(logoWidth + 10);  // Reserve space for logo + padding
     
     loopLengthSelector->setBounds(topBar.removeFromLeft(200));
@@ -442,4 +449,18 @@ void SquareBeatsAudioProcessorEditor::updateContextSensitiveControls()
     // Trigger layout update
     resized();
     repaint();
+}
+
+void SquareBeatsAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
+{
+    // Check if click is on the logo
+    if (logoClickArea.contains(event.getPosition()))
+    {
+        SquareBeats::HelpAboutDialog::show(this);
+    }
+}
+
+juce::Rectangle<int> SquareBeatsAudioProcessorEditor::getLogoBounds() const
+{
+    return logoClickArea;
 }

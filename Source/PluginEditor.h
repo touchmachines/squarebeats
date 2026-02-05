@@ -13,6 +13,7 @@
 #include "PlayModeControls.h"
 #include "ScaleSequencerComponent.h"
 #include "GateFlashOverlay.h"
+#include "HelpAboutDialog.h"
 
 //==============================================================================
 /**
@@ -40,6 +41,7 @@ public:
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
+    void mouseDown(const juce::MouseEvent& event) override;
     
     //==============================================================================
     // ColorSelectorComponent::Listener
@@ -57,6 +59,7 @@ public:
 private:
     void onClearAllClicked();
     void updateContextSensitiveControls();
+    juce::Rectangle<int> getLogoBounds() const;
     
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
@@ -64,6 +67,7 @@ private:
     
     // Logo image
     juce::Image logoImage;
+    juce::Rectangle<int> logoClickArea;
     
     // UI Components
     std::unique_ptr<SquareBeats::GateFlashOverlay> gateFlashOverlay;

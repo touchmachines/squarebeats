@@ -87,6 +87,16 @@ private:
     
     // Top bar clear all button
     juce::TextButton clearAllButton;
+    
+    // Preset controls
+    juce::ComboBox presetComboBox;
+    juce::TextButton savePresetButton;
+    juce::TextButton deletePresetButton;
+    
+    void onSavePresetClicked();
+    void onDeletePresetClicked();
+    void onPresetSelected();
+    void refreshPresetList();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SquareBeatsAudioProcessorEditor)
 };

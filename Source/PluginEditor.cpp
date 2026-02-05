@@ -68,6 +68,22 @@ SquareBeatsAudioProcessorEditor::SquareBeatsAudioProcessorEditor (SquareBeatsAud
     clearAllButton.onClick = [this]() { onClearAllClicked(); };
     addAndMakeVisible(clearAllButton);
     
+    // Create preset controls (top bar)
+    presetComboBox.setTextWhenNothingSelected("Select Preset...");
+    presetComboBox.onChange = [this]() { onPresetSelected(); };
+    addAndMakeVisible(presetComboBox);
+    
+    savePresetButton.setButtonText("Save");
+    savePresetButton.onClick = [this]() { onSavePresetClicked(); };
+    addAndMakeVisible(savePresetButton);
+    
+    deletePresetButton.setButtonText("Delete");
+    deletePresetButton.onClick = [this]() { onDeletePresetClicked(); };
+    addAndMakeVisible(deletePresetButton);
+    
+    // Populate preset list
+    refreshPresetList();
+    
     // Create control buttons
     controlButtons = std::make_unique<SquareBeats::ControlButtons>(
         audioProcessor.getPatternModel()
@@ -200,6 +216,16 @@ void SquareBeatsAudioProcessorEditor::resized()
     rightPanel.removeFromTop(10); // Section spacing
     
     // === GLOBAL CONTROLS ===
+    
+    // Preset controls (top bar)
+    auto presetArea = rightPanel.removeFromTop(40).reduced(5, 0);
+    int presetButtonWidth = 60;
+    deletePresetButton.setBounds(presetArea.removeFromRight(presetButtonWidth));
+    presetArea.removeFromRight(5);
+    savePresetButton.setBounds(presetArea.removeFromRight(presetButtonWidth));
+    presetArea.removeFromRight(5);
+    presetComboBox.setBounds(presetArea);
+    rightPanel.removeFromTop(5); // Spacing
     
     // Loop length selector
     loopLengthSelector->setBounds(rightPanel.removeFromTop(40));
@@ -492,4 +518,207 @@ void SquareBeatsAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
 juce::Rectangle<int> SquareBeatsAudioProcessorEditor::getLogoBounds() const
 {
     return logoClickArea;
+}
+
+//==============================================================================
+// Preset Management
+
+void SquareBeatsAudioProcessorEditor::refreshPresetList()
+{
+    presetComboBox.clear(juce::dontSendNotification);
+    
+    auto presetList = audioProcessor.getPresetList();
+    
+    for (int i = 0; i < presetList.size(); ++i)
+    {
+        presetComboBox.addItem(presetList[i], i + 1);
+    }
+}
+
+void SquareBeatsAudioProcessorEditor::onPresetSelected()
+{
+    int selectedId = presetComboBox.getSelectedId();
+    if (selectedId > 0)
+    {
+        juce::String presetName = presetComboBox.getItemText(selectedId - 1);
+        
+        if (audioProcessor.loadPreset(presetName))
+        {
+            // Preset loaded successfully - UI will update via change listener
+            juce::Logger::writeToLog("Loaded preset: " + presetName);
+        }
+        else
+        {
+            juce::AlertWindow::showMessageBoxAsync(
+                juce::AlertWindow::WarningIcon,
+                "Load Failed",
+                "Failed to load preset '" + presetName + "'",
+                "OK"
+            );
+        }
+    }
+}
+
+void SquareBeatsAudioProcessorEditor::onSavePresetClicked()
+{
+    // Create a lambda to handle the save logic
+    auto performSave = [this]()
+    {
+        auto* window = new juce::AlertWindow("Save Preset", 
+                                             "Enter a name for the preset:", 
+                                             juce::AlertWindow::NoIcon);
+        
+        window->addTextEditor("presetName", "", "Preset Name:");
+        window->addButton("Save", 1, juce::KeyPress(juce::KeyPress::returnKey));
+        window->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+        
+        window->enterModalState(true, juce::ModalCallbackFunction::create(
+            [this, window](int result)
+            {
+                if (result == 1)
+                {
+                    juce::String presetName = window->getTextEditorContents("presetName").trim();
+                    
+                    if (presetName.isEmpty())
+                    {
+                        juce::AlertWindow::showMessageBoxAsync(
+                            juce::AlertWindow::WarningIcon,
+                            "Invalid Name",
+                            "Preset name cannot be empty.",
+                            "OK"
+                        );
+                        delete window;
+                        return;
+                    }
+                    
+                    // Check if preset already exists
+                    if (audioProcessor.presetExists(presetName))
+                    {
+                        // Ask for overwrite confirmation
+                        juce::AlertWindow::showOkCancelBox(
+                            juce::AlertWindow::QuestionIcon,
+                            "Overwrite Preset",
+                            "A preset named '" + presetName + "' already exists. Overwrite it?",
+                            "Overwrite",
+                            "Cancel",
+                            nullptr,
+                            juce::ModalCallbackFunction::create([this, presetName](int overwriteResult)
+                            {
+                                if (overwriteResult == 1)
+                                {
+                                    // Save the preset
+                                    if (audioProcessor.savePreset(presetName))
+                                    {
+                                        refreshPresetList();
+                                        
+                                        // Select the newly saved preset
+                                        for (int i = 0; i < presetComboBox.getNumItems(); ++i)
+                                        {
+                                            if (presetComboBox.getItemText(i) == presetName)
+                                            {
+                                                presetComboBox.setSelectedId(i + 1, juce::dontSendNotification);
+                                                break;
+                                            }
+                                        }
+                                        
+                                        juce::Logger::writeToLog("Saved preset: " + presetName);
+                                    }
+                                    else
+                                    {
+                                        juce::AlertWindow::showMessageBoxAsync(
+                                            juce::AlertWindow::WarningIcon,
+                                            "Save Failed",
+                                            "Failed to save preset '" + presetName + "'",
+                                            "OK"
+                                        );
+                                    }
+                                }
+                            })
+                        );
+                        delete window;
+                        return;
+                    }
+                    
+                    // Save the preset (no overwrite needed)
+                    if (audioProcessor.savePreset(presetName))
+                    {
+                        refreshPresetList();
+                        
+                        // Select the newly saved preset
+                        for (int i = 0; i < presetComboBox.getNumItems(); ++i)
+                        {
+                            if (presetComboBox.getItemText(i) == presetName)
+                            {
+                                presetComboBox.setSelectedId(i + 1, juce::dontSendNotification);
+                                break;
+                            }
+                        }
+                        
+                        juce::Logger::writeToLog("Saved preset: " + presetName);
+                    }
+                    else
+                    {
+                        juce::AlertWindow::showMessageBoxAsync(
+                            juce::AlertWindow::WarningIcon,
+                            "Save Failed",
+                            "Failed to save preset '" + presetName + "'",
+                            "OK"
+                        );
+                    }
+                }
+                
+                delete window;
+            }
+        ), true);  // deleteWhenDismissed = true
+    };
+    
+    performSave();
+}
+
+void SquareBeatsAudioProcessorEditor::onDeletePresetClicked()
+{
+    int selectedId = presetComboBox.getSelectedId();
+    if (selectedId <= 0)
+    {
+        juce::AlertWindow::showMessageBoxAsync(
+            juce::AlertWindow::InfoIcon,
+            "No Preset Selected",
+            "Please select a preset to delete.",
+            "OK"
+        );
+        return;
+    }
+    
+    juce::String presetName = presetComboBox.getItemText(selectedId - 1);
+    
+    // Confirm deletion
+    juce::AlertWindow::showOkCancelBox(
+        juce::AlertWindow::QuestionIcon,
+        "Delete Preset",
+        "Are you sure you want to delete the preset '" + presetName + "'?",
+        "Delete",
+        "Cancel",
+        nullptr,
+        juce::ModalCallbackFunction::create([this, presetName](int result) {
+            if (result == 1)
+            {
+                // Delete the preset
+                if (audioProcessor.deletePreset(presetName))
+                {
+                    refreshPresetList();
+                    presetComboBox.setSelectedId(0, juce::dontSendNotification);
+                    juce::Logger::writeToLog("Deleted preset: " + presetName);
+                }
+                else
+                {
+                    juce::AlertWindow::showMessageBoxAsync(
+                        juce::AlertWindow::WarningIcon,
+                        "Delete Failed",
+                        "Failed to delete preset '" + presetName + "'",
+                        "OK"
+                    );
+                }
+            }
+        })
+    );
 }

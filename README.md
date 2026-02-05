@@ -276,13 +276,15 @@ cp -r "build/SquareBeats_artefacts/Release/VST3/SquareBeats.vst3" "~/Library/Aud
 10. **Scale Selection**: Choose root note and scale type to constrain notes to a musical scale
 11. **Scale Sequencer**: Click "Scale Seq" to enable the scale sequencer. When enabled, the Root/Scale dropdowns become disabled and display the currently playing scale in real-time. Add segments with "+", click segments to edit key/scale/duration, drag edges to resize. Click "Scale Seq" again to disable and return to manual scale control.
 12. **Play Modes**: Select playback direction from the top bar (Forward, Backward, Pendulum, or Probability). In Probability mode, an XY pad appears in the side panel to set step jump size (X) and probability (Y).
-13. **Start Playback**: Press play in your DAW to hear your pattern
+13. **Presets**: Use the preset dropdown to save and load your patterns. Click "Save" to create a new preset, select from the dropdown to load, or "Delete" to remove.
+14. **Start Playback**: Press play in your DAW to hear your pattern
 
 For detailed testing instructions, see [BUILD_AND_TEST.md](BUILD_AND_TEST.md)
 
 ## Documentation
 
 - **[BUILD_AND_TEST.md](BUILD_AND_TEST.md)** - Comprehensive build and testing guide
+- **[PRESET_SYSTEM.md](PRESET_SYSTEM.md)** - Preset management documentation
 - **[TESTING_RESULTS.md](TESTING_RESULTS.md)** - Testing checklist and results template
 - **[.kiro/specs/squarebeats-vst3/](../.kiro/specs/squarebeats-vst3/)** - Complete specification documents
   - `requirements.md` - Feature requirements
@@ -311,6 +313,7 @@ For detailed testing instructions, see [BUILD_AND_TEST.md](BUILD_AND_TEST.md)
 ### User Interface
 - **Resizable Window**: 800x600 minimum, 2000x1500 maximum
 - **Real-time Playback Indicators**: Visual feedback for main sequencer, pitch sequencer, and scale sequencer positions
+- **Preset Management**: Save, load, and delete presets with dropdown selector and buttons in top bar
 - **Tab-Based Color Configuration Panel**: 
   - **SQUARES tab**: Per-color settings for quantization, pitch range, and MIDI channel
   - **PITCH tab**: Switch to pitch sequencer editing mode

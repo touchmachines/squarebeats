@@ -49,6 +49,7 @@ target_sources(SquareBeats
         Source/MIDIGenerator.cpp
         Source/PlaybackEngine.cpp
         Source/StateManager.cpp
+        Source/PresetManager.cpp
         Source/SequencingPlaneComponent.cpp
         Source/ColorSelectorComponent.cpp
         Source/ColorConfigPanel.cpp
@@ -74,6 +75,7 @@ target_sources(SquareBeats
         Source/MIDIGenerator.h
         Source/PlaybackEngine.h
         Source/StateManager.h
+        Source/PresetManager.h
         Source/SequencingPlaneComponent.h
         Source/ColorSelectorComponent.h
         Source/ColorConfigPanel.h

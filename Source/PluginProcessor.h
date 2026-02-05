@@ -6,6 +6,7 @@
 #include "PlaybackEngine.h"
 #include "StateManager.h"
 #include "VisualFeedback.h"
+#include "PresetManager.h"
 
 //==============================================================================
 /**
@@ -69,6 +70,34 @@ public:
     
     // Access to beat pulse state for UI
     SquareBeats::BeatPulseState& getBeatPulseState() { return beatPulseState; }
+    
+    //==============================================================================
+    // Preset management
+    
+    /**
+     * Get list of available presets
+     */
+    juce::StringArray getPresetList() { return presetManager.getPresetList(); }
+    
+    /**
+     * Save current state as a named preset
+     */
+    bool savePreset(const juce::String& presetName) { return presetManager.savePreset(patternModel, presetName); }
+    
+    /**
+     * Load a preset by name
+     */
+    bool loadPreset(const juce::String& presetName) { return presetManager.loadPreset(patternModel, presetName); }
+    
+    /**
+     * Delete a preset by name
+     */
+    bool deletePreset(const juce::String& presetName) { return presetManager.deletePreset(presetName); }
+    
+    /**
+     * Check if a preset exists
+     */
+    bool presetExists(const juce::String& presetName) { return presetManager.presetExists(presetName); }
 
 private:
     //==============================================================================
@@ -77,6 +106,7 @@ private:
     SquareBeats::PlaybackEngine playbackEngine;
     SquareBeats::VisualFeedbackState visualFeedbackState;
     SquareBeats::BeatPulseState beatPulseState;
+    SquareBeats::PresetManager presetManager;
     
     // Beat tracking for visual pulse
     double lastBeatPosition = -1.0;

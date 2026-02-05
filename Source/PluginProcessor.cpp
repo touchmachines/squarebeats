@@ -14,6 +14,9 @@ SquareBeatsAudioProcessor::SquareBeatsAudioProcessor()
     
     // Connect visual feedback state to playback engine
     playbackEngine.setVisualFeedbackState(&visualFeedbackState);
+    
+    // Create factory presets if needed
+    presetManager.createFactoryPresetsIfNeeded();
 }
 
 SquareBeatsAudioProcessor::~SquareBeatsAudioProcessor()

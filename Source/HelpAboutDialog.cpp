@@ -72,7 +72,8 @@ void HelpAboutDialog::paint(juce::Graphics& g)
         "6. Choose a musical scale to constrain notes",
         "7. Enable Scale Sequencer to chain multiple key changes",
         "8. Select play modes: Forward, Backward, Pendulum, or Probability",
-        "9. Press play in your DAW to hear your pattern"
+        "9. Save/load presets using the dropdown in the top panel",
+        "10. Press play in your DAW to hear your pattern"
     };
     
     for (const auto& step : quickStartSteps)
@@ -97,6 +98,7 @@ void HelpAboutDialog::paint(juce::Graphics& g)
         "- Per-color pitch sequencer with polyrhythmic loop lengths",
         "- Scale sequencer for evolving harmonic progressions",
         "- Multiple play modes with probability-based randomization",
+        "- Preset system for saving and sharing patterns",
         "- Visual feedback with gate flashes and velocity ripples",
         "- Flexible quantization from 1/32 note to 1 bar"
     };

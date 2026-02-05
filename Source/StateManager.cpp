@@ -72,6 +72,13 @@ void StateManager::saveState(const PatternModel& model, juce::MemoryBlock& destD
         stream.writeInt(static_cast<int>(segment.scaleType));
         stream.writeInt(segment.lengthBars);
     }
+    
+    // Write play mode configuration (Version 7+)
+    const PlayModeConfig& playModeConfig = model.getPlayModeConfig();
+    stream.writeInt(static_cast<int>(playModeConfig.mode));
+    stream.writeFloat(playModeConfig.stepJumpSize);
+    stream.writeFloat(playModeConfig.probability);
+    // Note: pendulumForward is internal state, not saved (always starts forward)
 }
 
 //==============================================================================
@@ -346,6 +353,25 @@ bool StateManager::loadState(PatternModel& model, const void* data, int sizeInBy
             
             // Use mutable getter to assign the loaded config
             model.getScaleSequencer() = scaleSeqConfig;
+        }
+        
+        // Read play mode configuration (Version 7+)
+        if (version >= 7 && stream.getNumBytesRemaining() >= 12)  // 1 int + 2 floats
+        {
+            int playMode = stream.readInt();
+            float stepJumpSize = stream.readFloat();
+            float probability = stream.readFloat();
+            
+            // Validate and clamp values
+            playMode = juce::jlimit(0, static_cast<int>(NUM_PLAY_MODES) - 1, playMode);
+            stepJumpSize = juce::jlimit(0.0f, 1.0f, stepJumpSize);
+            probability = juce::jlimit(0.0f, 1.0f, probability);
+            
+            PlayModeConfig& playModeConfig = model.getPlayModeConfig();
+            playModeConfig.mode = static_cast<PlayMode>(playMode);
+            playModeConfig.stepJumpSize = stepJumpSize;
+            playModeConfig.probability = probability;
+            playModeConfig.pendulumForward = true;  // Always start forward
         }
         
         return true;

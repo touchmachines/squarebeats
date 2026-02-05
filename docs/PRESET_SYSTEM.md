@@ -12,7 +12,7 @@ SquareBeats includes a comprehensive preset management system that allows users 
   - Pitch sequencer waveforms and loop lengths
   - Scale settings (root note, scale type)
   - Scale sequencer configuration
-  - Play mode settings
+  - Play mode settings (mode, step jump size, probability)
   - Loop length
   
 - **Load Presets**: Instantly recall saved patterns
@@ -74,7 +74,7 @@ This standard location means:
 - No squares
 - Default color configurations
 - C Major scale
-- Forward play mode
+- Forward play mode (with default probability settings)
 - All pitch sequencers at 1 bar length
 
 ## Technical Details
@@ -84,9 +84,9 @@ This standard location means:
 Presets use the same binary serialization format as the plugin's state save/load system (`StateManager`). The format includes:
 
 - Magic number for validation
-- Version number for compatibility
+- Version number for compatibility (currently version 7)
 - All pattern data
-- All configuration settings
+- All configuration settings (including play mode)
 
 ### Compatibility
 

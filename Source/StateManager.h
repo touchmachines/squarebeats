@@ -37,7 +37,8 @@ private:
     // Version 4: Scale configuration (root note and scale type)
     // Version 5: Scale sequencer configuration (enabled state and segments)
     // Version 6: Per-color main loop length
-    static constexpr uint32_t VERSION = 6;
+    // Version 7: Play mode configuration (mode, stepJumpSize, probability)
+    static constexpr uint32_t VERSION = 7;
     
     JUCE_DECLARE_NON_COPYABLE(StateManager)
 };

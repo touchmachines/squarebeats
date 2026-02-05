@@ -118,12 +118,15 @@ SquareBeatsAudioProcessorEditor::SquareBeatsAudioProcessorEditor (SquareBeatsAud
     addAndMakeVisible(scaleSequencer.get());
     
     // Scale sequencer toggle button
-    scaleSeqToggle.setButtonText("Scale Seq");
+    scaleSeqToggle.setButtonText("Enable Scale Sequencer");
     scaleSeqToggle.setClickingTogglesState(true);
     scaleSeqToggle.onClick = [this]() {
         auto& scaleSeqConfig = audioProcessor.getPatternModel().getScaleSequencer();
         scaleSeqConfig.enabled = scaleSeqToggle.getToggleState();
         scaleSequencer->setVisible(scaleSeqConfig.enabled);
+        
+        // Update button text based on state
+        scaleSeqToggle.setButtonText(scaleSeqConfig.enabled ? "Disable Scale Sequencer" : "Enable Scale Sequencer");
         
         // Enable/disable scale controls based on scale sequencer state
         if (scaleControls != nullptr) {
@@ -383,6 +386,7 @@ void SquareBeatsAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadca
     // Update scale sequencer toggle state and scale controls enabled state
     auto& scaleSeqConfig = audioProcessor.getPatternModel().getScaleSequencer();
     scaleSeqToggle.setToggleState(scaleSeqConfig.enabled, juce::dontSendNotification);
+    scaleSeqToggle.setButtonText(scaleSeqConfig.enabled ? "Disable Scale Sequencer" : "Enable Scale Sequencer");
     scaleSequencer->setVisible(scaleSeqConfig.enabled);
     
     if (scaleControls != nullptr)

@@ -279,7 +279,7 @@ void ColorConfigPanel::setupComponents()
     addAndMakeVisible(midiChannelCombo);
     
     // Pitch sequencer length
-    pitchSeqLengthLabel.setText("Pitch Len:", juce::dontSendNotification);
+    pitchSeqLengthLabel.setText("Pitch Length:", juce::dontSendNotification);
     pitchSeqLengthLabel.setColour(juce::Label::textColourId, juce::Colours::white);
     pitchSeqLengthLabel.setFont(AppFont::label());
     addAndMakeVisible(pitchSeqLengthLabel);
@@ -296,7 +296,7 @@ void ColorConfigPanel::setupComponents()
     
     // Main loop length control (0 = use global)
     // Options match global loop length: 1-15 steps, 1-8 bars, 16/32/64 bars
-    mainLoopLengthLabel.setText("Loop Len:", juce::dontSendNotification);
+    mainLoopLengthLabel.setText("Loop Length:", juce::dontSendNotification);
     mainLoopLengthLabel.setColour(juce::Label::textColourId, juce::Colours::white);
     mainLoopLengthLabel.setFont(AppFont::label());
     addAndMakeVisible(mainLoopLengthLabel);
@@ -348,7 +348,7 @@ void ColorConfigPanel::updateControlVisibility()
     }
     else
     {
-        clearButton.setButtonText("Clear All (Current Color)");
+        clearButton.setButtonText("Clear Squares (Current Color)");
     }
     
     // Note controls are always visible but labels change meaning in pitch mode

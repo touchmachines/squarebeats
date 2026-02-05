@@ -172,9 +172,6 @@ void PlaybackEngine::updatePlaybackPosition(int numSamples)
     totalSteps = calculateTotalSteps();
     double beatsPerStep = loopLengthBeats / totalSteps;
     
-    // Track previous step to detect step changes
-    int previousStep = currentStepIndex;
-    
     // Update per-color positions based on play mode
     for (int colorId = 0; colorId < 4; ++colorId) {
         double colorLoopBeats = colorLoopLengthBeats[colorId];
@@ -216,12 +213,15 @@ void PlaybackEngine::updatePlaybackPosition(int numSamples)
                 break;
                 
             case PLAY_PROBABILITY:
-                // Each color advances normally and may jump forward on step boundaries
+                // Each color advances normally and may jump forward on BEAT boundaries
+                // This makes jumps feel musical and quantized, not chaotic
                 {
                     // Calculate steps for this color's loop
                     int colorSteps = std::max(1, static_cast<int>(colorLoopBeats / (timeSig.getBeatsPerBar() / 16.0)));
                     double beatsPerColorStep = colorLoopBeats / colorSteps;
-                    int previousColorStep = colorCurrentStep[colorId];
+                    
+                    // Store previous position to detect beat crossings
+                    double previousColorPosition = colorPositionBeats[colorId];
                     
                     // Advance position normally
                     colorPositionBeats[colorId] += beatsElapsed;
@@ -229,23 +229,27 @@ void PlaybackEngine::updatePlaybackPosition(int numSamples)
                         colorPositionBeats[colorId] = std::fmod(colorPositionBeats[colorId], colorLoopBeats);
                     }
                     
-                    // Calculate current step
-                    int newColorStep = static_cast<int>(colorPositionBeats[colorId] / beatsPerColorStep) % colorSteps;
+                    // Check for jumps only on BEAT boundaries (not every 1/16 note)
+                    int currentBeat = static_cast<int>(colorPositionBeats[colorId]);
+                    int previousBeat = static_cast<int>(previousColorPosition);
                     
-                    // Check if we crossed a step boundary
-                    if (newColorStep != previousColorStep) {
+                    // If we crossed a beat boundary, check for jump
+                    if (currentBeat != previousBeat) {
                         // Roll for probability jump
                         if (randomGenerator.nextFloat() < playModeConfig.probability) {
                             // Jump forward by musical step size (1, 2, 4, 8, or 16 steps)
                             int jumpSteps = playModeConfig.getStepJumpSteps();
                             colorCurrentStep[colorId] = (colorCurrentStep[colorId] + jumpSteps) % colorSteps;
                             
-                            // Update position to match new step
+                            // Update position to match new step (quantized to step grid)
                             colorPositionBeats[colorId] = colorCurrentStep[colorId] * beatsPerColorStep;
                         } else {
-                            // Normal advance
-                            colorCurrentStep[colorId] = newColorStep;
+                            // Normal advance - update step index to match current position
+                            colorCurrentStep[colorId] = static_cast<int>(colorPositionBeats[colorId] / beatsPerColorStep) % colorSteps;
                         }
+                    } else {
+                        // No beat boundary crossed - just update step index
+                        colorCurrentStep[colorId] = static_cast<int>(colorPositionBeats[colorId] / beatsPerColorStep) % colorSteps;
                     }
                 }
                 break;
@@ -297,26 +301,37 @@ void PlaybackEngine::updatePlaybackPosition(int numSamples)
             break;
             
         case PLAY_PROBABILITY:
-            // In probability mode, we advance normally but may jump on step boundaries
-            currentPositionBeats += beatsElapsed;
-            if (loopLengthBeats > 0.0 && currentPositionBeats >= loopLengthBeats) {
-                currentPositionBeats = std::fmod(currentPositionBeats, loopLengthBeats);
-            }
-            
-            int newStep = static_cast<int>(currentPositionBeats / beatsPerStep) % totalSteps;
-            
-            // Check if we crossed a step boundary
-            if (newStep != previousStep) {
-                // Roll for probability jump
-                if (randomGenerator.nextFloat() < playModeConfig.probability) {
-                    // Jump forward by step jump size (always forward, matching per-color behavior)
-                    int jumpSteps = playModeConfig.getStepJumpSteps();
-                    currentStepIndex = (currentStepIndex + jumpSteps) % totalSteps;
-                    
-                    // Update position to match new step
-                    currentPositionBeats = currentStepIndex * beatsPerStep;
+            // In probability mode, we advance normally but may jump on BEAT boundaries
+            // This makes jumps feel musical and quantized, not chaotic
+            {
+                double previousPositionBeats = currentPositionBeats;
+                currentPositionBeats += beatsElapsed;
+                if (loopLengthBeats > 0.0 && currentPositionBeats >= loopLengthBeats) {
+                    currentPositionBeats = std::fmod(currentPositionBeats, loopLengthBeats);
+                }
+                
+                // Check for jumps only on BEAT boundaries (not every 1/16 note)
+                // This gives musical, quantized jumps instead of chaotic randomness
+                int currentBeat = static_cast<int>(currentPositionBeats);
+                int previousBeat = static_cast<int>(previousPositionBeats);
+                
+                // If we crossed a beat boundary, check for jump
+                if (currentBeat != previousBeat) {
+                    // Roll for probability jump
+                    if (randomGenerator.nextFloat() < playModeConfig.probability) {
+                        // Jump forward by step jump size (always forward, matching per-color behavior)
+                        int jumpSteps = playModeConfig.getStepJumpSteps();
+                        currentStepIndex = (currentStepIndex + jumpSteps) % totalSteps;
+                        
+                        // Update position to match new step (quantized to step grid)
+                        currentPositionBeats = currentStepIndex * beatsPerStep;
+                    } else {
+                        // Normal advance - update step index to match current position
+                        currentStepIndex = static_cast<int>(currentPositionBeats / beatsPerStep) % totalSteps;
+                    }
                 } else {
-                    currentStepIndex = newStep;
+                    // No beat boundary crossed - just update step index
+                    currentStepIndex = static_cast<int>(currentPositionBeats / beatsPerStep) % totalSteps;
                 }
             }
             break;

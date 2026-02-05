@@ -321,16 +321,18 @@ struct PlayModeConfig {
     }
     
     /**
-     * Get the actual step jump size in steps - musical divisions only (1, 2, 4, 8, 16)
-     * Maps normalized 0.0-1.0 to powers of 2 for musical timing
+     * Get the actual step jump size in steps - musical divisions for larger jumps
+     * Maps normalized 0.0-1.0 to musically useful jump sizes
+     * Based on 1/16 note grid: 4 steps = 1 beat, 16 steps = 1 bar
      */
     int getStepJumpSteps() const {
-        // Map to 5 musical divisions: 1, 2, 4, 8, 16 steps
-        if (stepJumpSize < 0.2f) return 1;   // 0.0 - 0.2 -> 1 step
-        if (stepJumpSize < 0.4f) return 2;   // 0.2 - 0.4 -> 2 steps
-        if (stepJumpSize < 0.6f) return 4;   // 0.4 - 0.6 -> 4 steps
-        if (stepJumpSize < 0.8f) return 8;   // 0.6 - 0.8 -> 8 steps
-        return 16;                            // 0.8 - 1.0 -> 16 steps
+        // Map to larger musical divisions: 4, 8, 16, 32, 64 steps
+        // This gives: 1 beat, 2 beats, 1 bar, 2 bars, 4 bars
+        if (stepJumpSize < 0.2f) return 4;   // 0.0 - 0.2 -> 4 steps (1 beat)
+        if (stepJumpSize < 0.4f) return 8;   // 0.2 - 0.4 -> 8 steps (2 beats)
+        if (stepJumpSize < 0.6f) return 16;  // 0.4 - 0.6 -> 16 steps (1 bar)
+        if (stepJumpSize < 0.8f) return 32;  // 0.6 - 0.8 -> 32 steps (2 bars)
+        return 64;                            // 0.8 - 1.0 -> 64 steps (4 bars)
     }
 };
 

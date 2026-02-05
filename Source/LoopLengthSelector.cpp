@@ -55,8 +55,8 @@ void LoopLengthSelector::resized()
 {
     auto bounds = getLocalBounds().reduced(5);
     
-    // Label on left, combo on right
-    loopLengthLabel.setBounds(bounds.removeFromLeft(90));
+    // Label on left, combo on right - more compact for right panel
+    loopLengthLabel.setBounds(bounds.removeFromLeft(80));
     bounds.removeFromLeft(5);
     loopLengthCombo.setBounds(bounds);
 }

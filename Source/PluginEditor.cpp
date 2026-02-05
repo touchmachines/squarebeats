@@ -162,7 +162,7 @@ void SquareBeatsAudioProcessorEditor::paint (juce::Graphics& g)
     // Fill the background
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
     
-    // Draw the logo in the top left corner
+    // Draw the logo at the bottom of the right panel
     if (logoImage.isValid())
     {
         auto logoBounds = getLogoBounds();
@@ -185,34 +185,37 @@ void SquareBeatsAudioProcessorEditor::resized()
 {
     auto bounds = getLocalBounds();
     
-    // Top bar: Logo, Loop length, time signature, scale controls, scale seq toggle, clear all, and play mode buttons
-    auto topBar = bounds.removeFromTop(60);
+    // Standard button height for consistency across the app
+    const int standardButtonHeight = 30;
     
-    // Logo on the far left (maintain aspect ratio, fit to height)
-    int logoHeight = topBar.getHeight() - 10;
-    int logoWidth = logoImage.isValid() ? 
-        static_cast<int>(logoImage.getWidth() * (static_cast<float>(logoHeight) / logoImage.getHeight())) : 60;
-    logoClickArea = juce::Rectangle<int>(5, 5, logoWidth, logoHeight);
-    topBar.removeFromLeft(logoWidth + 10);  // Reserve space for logo + padding
+    // Right panel: All controls from top to bottom, logo at bottom
+    auto rightPanel = bounds.removeFromRight(280);
+    auto rightPanelOriginal = rightPanel;  // Save original bounds for logo positioning
     
-    loopLengthSelector->setBounds(topBar.removeFromLeft(200));
-    topBar.removeFromLeft(10); // Spacing
-    scaleControls->setBounds(topBar.removeFromLeft(290));
-    topBar.removeFromLeft(10); // Spacing
-    scaleSeqToggle.setBounds(topBar.removeFromLeft(70).reduced(0, 15));
-    topBar.removeFromLeft(10); // Spacing
-    clearAllButton.setBounds(topBar.removeFromLeft(80).reduced(0, 15));
-    topBar.removeFromLeft(10); // Spacing
-    // Play mode buttons at the end of top bar
-    playModeButtons->setBounds(topBar.removeFromRight(200).reduced(0, 10));
+    // === TOP SECTION: Play Mode Controls ===
+    rightPanel.removeFromTop(5); // Top padding
     
-    // Right panel: Color selector, config panel, control buttons, and context-sensitive XY pad
-    auto rightPanel = bounds.removeFromRight(250);
+    // Play mode buttons
+    playModeButtons->setBounds(rightPanel.removeFromTop(40).reduced(5, 0));
+    rightPanel.removeFromTop(10); // Section spacing
     
+    // === GLOBAL CONTROLS ===
+    
+    // Loop length selector
+    loopLengthSelector->setBounds(rightPanel.removeFromTop(40));
+    rightPanel.removeFromTop(5); // Spacing
+    
+    // Clear All button
+    clearAllButton.setBounds(rightPanel.removeFromTop(standardButtonHeight).reduced(5, 0));
+    rightPanel.removeFromTop(10); // Section spacing
+    
+    // === MIDDLE SECTION: Color Controls ===
+    
+    // Color selector
     colorSelector->setBounds(rightPanel.removeFromTop(50));
     rightPanel.removeFromTop(10); // Spacing
     
-    // Context-sensitive: Show either color config (square mode) or pitch config (pitch mode)
+    // Color config panel (context-sensitive: squares or pitch mode)
     colorConfigPanel->setBounds(rightPanel.removeFromTop(310));
     
     rightPanel.removeFromTop(10); // Spacing
@@ -226,6 +229,32 @@ void SquareBeatsAudioProcessorEditor::resized()
         playModeXYPad->setBounds(rightPanel.removeFromTop(180));
     }
     
+    rightPanel.removeFromTop(10); // Section spacing
+    
+    // === SCALE CONTROLS ===
+    
+    // Scale controls (root and scale dropdowns)
+    scaleControls->setBounds(rightPanel.removeFromTop(40));
+    rightPanel.removeFromTop(5); // Spacing
+    
+    // Scale Seq toggle button
+    scaleSeqToggle.setBounds(rightPanel.removeFromTop(standardButtonHeight).reduced(5, 0));
+    
+    // === LOGO AT BOTTOM ===
+    
+    // Logo at the bottom of right panel (maintain aspect ratio)
+    int logoHeight = 50;
+    int logoWidth = logoImage.isValid() ? 
+        static_cast<int>(logoImage.getWidth() * (static_cast<float>(logoHeight) / logoImage.getHeight())) : 50;
+    
+    // Position logo at bottom, centered horizontally in right panel
+    auto logoArea = rightPanel.removeFromBottom(logoHeight + 10);
+    int xOffset = (rightPanelOriginal.getWidth() - logoWidth) / 2;
+    logoClickArea = juce::Rectangle<int>(rightPanelOriginal.getX() + xOffset, 
+                                          logoArea.getY() + 5, 
+                                          logoWidth, 
+                                          logoHeight);
+    
     // Scale sequencer overlay (when visible, takes bottom portion of main area)
     auto& scaleSeqConfig = audioProcessor.getPatternModel().getScaleSequencer();
     if (scaleSeqConfig.enabled && scaleSequencer->isVisible()) {
@@ -233,7 +262,7 @@ void SquareBeatsAudioProcessorEditor::resized()
         bounds.removeFromBottom(5);
     }
     
-    // Main area: Sequencing plane with pitch sequencer overlay
+    // Main area: Sequencing plane with pitch sequencer overlay (full height on left)
     gateFlashOverlay->setBounds(bounds);  // Flash overlay behind sequencing plane
     sequencingPlane->setBounds(bounds);
     pitchSequencer->setBounds(bounds);  // Same bounds as sequencing plane (overlay)

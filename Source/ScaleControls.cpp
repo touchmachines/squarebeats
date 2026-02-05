@@ -52,24 +52,26 @@ void ScaleControls::resized()
 {
     auto bounds = getLocalBounds().reduced(5);
     
-    // Layout: [Root: ][combo] [Scale: ][combo] [Active: label]
-    int labelWidth = 45;
-    int comboWidth = 55;
-    int scaleComboWidth = 110;
+    // Layout: [Root: ][combo]  [Scale: ][combo]
+    int labelWidth = 40;
+    int comboWidth = 60;
+    int scaleComboWidth = 115;
     int spacing = 5;
     
     rootLabel.setBounds(bounds.removeFromLeft(labelWidth));
     bounds.removeFromLeft(spacing);
     rootNoteCombo.setBounds(bounds.removeFromLeft(comboWidth));
-    bounds.removeFromLeft(spacing * 2);
+    bounds.removeFromLeft(spacing);
     
     scaleLabel.setBounds(bounds.removeFromLeft(labelWidth));
     bounds.removeFromLeft(spacing);
     scaleTypeCombo.setBounds(bounds.removeFromLeft(scaleComboWidth));
     
-    // Active scale label takes remaining space
-    bounds.removeFromLeft(spacing * 2);
-    activeScaleLabel.setBounds(bounds);
+    // Active scale label takes remaining space (if needed)
+    if (bounds.getWidth() > 0) {
+        bounds.removeFromLeft(spacing);
+        activeScaleLabel.setBounds(bounds);
+    }
 }
 
 void ScaleControls::refreshFromModel()

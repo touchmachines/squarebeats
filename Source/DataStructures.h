@@ -293,7 +293,7 @@ enum PlayMode {
  */
 struct PlayModeConfig {
     PlayMode mode;
-    float stepJumpSize;      // 0.0 to 1.0 (normalized, maps to 1-16 steps)
+    float stepJumpSize;      // 0.0 to 1.0 (normalized, maps to musical step divisions)
     float probability;       // 0.0 to 1.0 (chance of jumping vs normal step)
     bool pendulumForward;    // Internal state: current direction in pendulum mode
     
@@ -321,10 +321,16 @@ struct PlayModeConfig {
     }
     
     /**
-     * Get the actual step jump size in steps (1-16)
+     * Get the actual step jump size in steps - musical divisions only (1, 2, 4, 8, 16)
+     * Maps normalized 0.0-1.0 to powers of 2 for musical timing
      */
     int getStepJumpSteps() const {
-        return 1 + static_cast<int>(stepJumpSize * 15.0f);  // Maps 0.0-1.0 to 1-16
+        // Map to 5 musical divisions: 1, 2, 4, 8, 16 steps
+        if (stepJumpSize < 0.2f) return 1;   // 0.0 - 0.2 -> 1 step
+        if (stepJumpSize < 0.4f) return 2;   // 0.2 - 0.4 -> 2 steps
+        if (stepJumpSize < 0.6f) return 4;   // 0.4 - 0.6 -> 4 steps
+        if (stepJumpSize < 0.8f) return 8;   // 0.6 - 0.8 -> 8 steps
+        return 16;                            // 0.8 - 1.0 -> 16 steps
     }
 };
 

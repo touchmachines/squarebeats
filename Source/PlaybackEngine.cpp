@@ -22,6 +22,7 @@ PlaybackEngine::PlaybackEngine()
         colorPositionBeats[i] = 0.0;
         colorLoopLengthBeats[i] = 0.0;
         colorPendulumForward[i] = true;
+        colorCurrentStep[i] = 0;
     }
 }
 
@@ -89,10 +90,11 @@ void PlaybackEngine::handleTransportChange(bool playing, double sr, double tempo
         currentStepIndex = 0;
         pendulumForward = true;
         
-        // Reset per-color positions and pendulum directions
+        // Reset per-color positions, pendulum directions, and step indices
         for (int i = 0; i < 4; ++i) {
             colorPositionBeats[i] = 0.0;
             colorPendulumForward[i] = true;
+            colorCurrentStep[i] = 0;
         }
     }
     
@@ -163,6 +165,9 @@ void PlaybackEngine::updatePlaybackPosition(int numSamples)
     // Get play mode configuration
     const PlayModeConfig& playModeConfig = pattern->getPlayModeConfig();
     
+    // Get time signature for step calculations
+    TimeSignature timeSig = pattern->getTimeSignature();
+    
     // Calculate step duration
     totalSteps = calculateTotalSteps();
     double beatsPerStep = loopLengthBeats / totalSteps;
@@ -211,10 +216,37 @@ void PlaybackEngine::updatePlaybackPosition(int numSamples)
                 break;
                 
             case PLAY_PROBABILITY:
-                // Probability mode advances normally, jumps handled per-color
-                colorPositionBeats[colorId] += beatsElapsed;
-                if (colorPositionBeats[colorId] >= colorLoopBeats) {
-                    colorPositionBeats[colorId] = std::fmod(colorPositionBeats[colorId], colorLoopBeats);
+                // Each color advances normally and may jump forward on step boundaries
+                {
+                    // Calculate steps for this color's loop
+                    int colorSteps = std::max(1, static_cast<int>(colorLoopBeats / (timeSig.getBeatsPerBar() / 16.0)));
+                    double beatsPerColorStep = colorLoopBeats / colorSteps;
+                    int previousColorStep = colorCurrentStep[colorId];
+                    
+                    // Advance position normally
+                    colorPositionBeats[colorId] += beatsElapsed;
+                    if (colorPositionBeats[colorId] >= colorLoopBeats) {
+                        colorPositionBeats[colorId] = std::fmod(colorPositionBeats[colorId], colorLoopBeats);
+                    }
+                    
+                    // Calculate current step
+                    int newColorStep = static_cast<int>(colorPositionBeats[colorId] / beatsPerColorStep) % colorSteps;
+                    
+                    // Check if we crossed a step boundary
+                    if (newColorStep != previousColorStep) {
+                        // Roll for probability jump
+                        if (randomGenerator.nextFloat() < playModeConfig.probability) {
+                            // Jump forward by musical step size (1, 2, 4, 8, or 16 steps)
+                            int jumpSteps = playModeConfig.getStepJumpSteps();
+                            colorCurrentStep[colorId] = (colorCurrentStep[colorId] + jumpSteps) % colorSteps;
+                            
+                            // Update position to match new step
+                            colorPositionBeats[colorId] = colorCurrentStep[colorId] * beatsPerColorStep;
+                        } else {
+                            // Normal advance
+                            colorCurrentStep[colorId] = newColorStep;
+                        }
+                    }
                 }
                 break;
         }
@@ -393,10 +425,11 @@ void PlaybackEngine::resetPlaybackPosition()
     absolutePositionBeats = 0.0;
     currentStepIndex = 0;
     
-    // Reset per-color positions and pendulum directions
+    // Reset per-color positions, pendulum directions, and step indices
     for (int i = 0; i < 4; ++i) {
         colorPositionBeats[i] = 0.0;
         colorPendulumForward[i] = true;
+        colorCurrentStep[i] = 0;
     }
     
     // Stop all active notes when resetting

@@ -121,6 +121,7 @@ private:
     double colorPositionBeats[4];  // Current position for each color
     double colorLoopLengthBeats[4]; // Loop length for each color
     bool colorPendulumForward[4];  // Per-color pendulum direction
+    int colorCurrentStep[4];       // Per-color step index for probability mode
     
     bool isPlaying;               // Transport play state
     double sampleRate;            // Current sample rate

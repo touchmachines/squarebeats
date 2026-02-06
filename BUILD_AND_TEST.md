@@ -29,6 +29,8 @@
    ```cmd
    cmake -DJUCE_DIR=C:\JUCE -G "Visual Studio 17 2022" ..
    ```
+   
+   **Note:** macOS builds automatically create a universal binary supporting both Intel (x86_64) and Apple Silicon (arm64) architectures.
 
 4. Build the plugin:
    ```bash
@@ -37,7 +39,7 @@
 
 5. The VST3 plugin will be located in:
    - Windows: `build\SquareBeats_artefacts\Release\VST3\SquareBeats.vst3`
-   - macOS: `build/SquareBeats_artefacts/Release/VST3/SquareBeats.vst3`
+   - macOS: `build/SquareBeats_artefacts/Release/VST3/SquareBeats.vst3` (universal binary)
 
 ### Build Method 2: Using Projucer
 

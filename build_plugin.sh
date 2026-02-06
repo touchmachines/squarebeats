@@ -1,6 +1,7 @@
 #!/bin/bash
 # SquareBeats VST3 Plugin Build Script for macOS/Linux
 # This script builds the SquareBeats plugin using CMake
+# macOS builds create a universal binary (Intel + Apple Silicon)
 
 echo "========================================"
 echo "SquareBeats VST3 Plugin Build Script"
@@ -52,6 +53,17 @@ echo "========================================"
 echo ""
 echo "VST3 plugin location:"
 echo "$(pwd)/SquareBeats_artefacts/Release/VST3/SquareBeats.vst3"
+
+# Show architecture info on macOS
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo ""
+    echo "macOS universal binary created (Intel + Apple Silicon)"
+    if command -v lipo &> /dev/null; then
+        echo "Architectures included:"
+        lipo -info "SquareBeats_artefacts/Release/VST3/SquareBeats.vst3/Contents/MacOS/SquareBeats" 2>/dev/null || echo "  (architecture info not available)"
+    fi
+fi
+
 echo ""
 
 # Determine installation path based on OS

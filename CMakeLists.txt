@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.15)
 
 project(SquareBeats VERSION 1.0.0)
 
+# Configure macOS universal binary (Intel + Apple Silicon)
+if(APPLE)
+    set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for macOS" FORCE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum macOS version" FORCE)
+    message(STATUS "Building macOS universal binary (x86_64 + arm64)")
+endif()
+
 # Add JUCE as a subdirectory (assumes JUCE is available)
 # Users should set JUCE_DIR to their JUCE installation path
 if(NOT DEFINED JUCE_DIR)

@@ -62,6 +62,8 @@ cmake -B build -DJUCE_DIR="/path/to/JUCE"
 cmake --build build --config Release --target SquareBeats_VST3 -j4
 ```
 
+**Note:** macOS builds automatically create a universal binary that works on both Intel and Apple Silicon Macs.
+
 ### Installing for Testing
 
 **Windows:**

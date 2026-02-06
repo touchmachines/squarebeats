@@ -133,7 +133,7 @@ Dynamic visual feedback makes the plugin fun to watch:
 - No stuck notes
 
 ### Cross-Platform
-- Windows and macOS support
+- Windows (x64) and macOS (Intel + Apple Silicon universal binary) support
 - Standard VST3 format
 - Platform-specific system fonts (Segoe UI, SF Pro Text, Ubuntu)
 

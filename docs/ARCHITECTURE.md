@@ -274,6 +274,7 @@ VST3 audio processor implementation:
 - Individual module includes (no JuceHeader.h)
 - VST3 target configuration
 - Test executable targets
+- macOS universal binary support (x86_64 + arm64)
 
 ### Projucer (`SquareBeats.jucer`)
 - Alternative build method
